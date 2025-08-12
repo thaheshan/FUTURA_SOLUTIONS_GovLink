@@ -1,0 +1,75 @@
+{
+    "extends": [
+        "airbnb",
+        "eslint:recommended",
+        "plugin:@typescript-eslint/recommended",
+        "prettier"
+    ],
+    "plugins": ["@typescript-eslint"],
+    "parser": "@typescript-eslint/parser",
+    "rules": {
+         "no-shadow": "off",
+        "new-cap": "off",
+        "no-unused-vars": "off",
+        "@typescript-eslint/no-unused-vars": "error",
+        "import/no-unresolved": 0,
+        "import/extensions": [
+            "error",
+            "ignorePackages",
+            {
+                "js": "never",
+                "ts": "never",
+                "": "never"
+            }
+        ],
+        "import/prefer-default-export": 0,
+        "no-underscore-dangle": 0,
+        "max-classes-per-file": 0,
+        "max-len": 0,
+        "max-lines": 0,
+        "no-useless-constructor": 0,
+        "no-empty-function": 0,
+        "@typescript-eslint/no-empty-function": [
+            "error",
+            {
+                "allow": ["constructors"]
+            }
+        ],
+        "comma-dangle": ["error", "never"],
+        "class-methods-use-this": 0,
+        "no-unused-expressions": 0,
+        "@typescript-eslint/camelcase": 0,
+        "no-use-before-define": "off",
+        "operator-linebreak": ["error", "after"],
+        "@typescript-eslint/no-use-before-define": [
+            "error",
+            {
+                "functions": true,
+                "classes": true,
+                "variables": true,
+                "typedefs": true,
+                "enums": true,
+                "ignoreTypeReferences": true
+            }
+        ],
+        "import/no-extraneous-dependencies": 0,
+        // "no-shadow": ["error", { "hoist": "never" }],
+        "no-alert": 0,
+        "linebreak-style": ["error", "windows"]
+    },
+    "env": {
+        "commonjs": true,
+        "node": true,
+        "jest": true,
+        "es6": true,
+        "browser": true,
+        "worker": true
+    },
+    "globals": {
+        "localStorage": true,
+        "window": true,
+        "File": true,
+        "Response": true,
+        "NodeJS": true
+    }
+}
