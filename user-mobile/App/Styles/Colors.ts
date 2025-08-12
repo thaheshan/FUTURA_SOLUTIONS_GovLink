@@ -1,19 +1,32 @@
+// Styles/Colors.ts
 const colors = {
-  primary: '#0d5cb6',       // Sri Lanka government blue
-  primaryLight: '#e0e9f5',
-  secondary: '#f0b323',     // Gold accent
-  background: '#f5f5f7',
-  text: '#333333',
-  textSecondary: '#666666',
-  success: '#4caf50',
-  warning: '#ff9800',
-  error: '#f44336',
-  white: '#ffffff',
-  black: '#000000',
-  gray: '#cccccc',
-  lightGray: '#eeeeee',
-  border: '#dddddd',
-  overlay: 'rgba(0,0,0,0.5)',
+  // Primary Colors
+  primary: '#A7D5D7',
+  secondary: '#9BDADC',
+
+  // Neutral Colors
+  black: '#26303B',
+  gray: '#626262',
+  lightGray: '#F8F8F8',
+  white: '#FFFFFF', 
+
+  // Branding Colors
+  brandPrimary: '#A7D5D7',
+  brandSecondary: '#9BDADC',
+
+  // Text Colors
+  textPrimary: '#26303B',
+  textSecondary: '#626262',
+
+  // Background Colors
+  backgroundPrimary: '#FFFFFF',
+  backgroundSecondary: '#F8F8F8',
+
+  // Error and Success Colors
+  error: '#FF5252',
+  success: '#4CAF50',
+
+  // Other Colors
   transparent: 'transparent',
 };
 

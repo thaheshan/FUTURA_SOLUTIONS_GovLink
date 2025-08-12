@@ -18,13 +18,14 @@
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/GovLinklogo.png"
-      
-
       },
       "edgeToEdgeEnabled": true
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "plugins": [
+      "expo-font"
+    ]
   }
 }
