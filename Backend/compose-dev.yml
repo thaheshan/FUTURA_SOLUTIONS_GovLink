@@ -1,0 +1,59 @@
+version: '3.8'
+
+services:
+  mongo:
+    image: mongo
+    restart: always
+    ports:
+      - 27017:27017
+    environment:
+      # MONGO_INITDB_ROOT_USERNAME: admin
+      # MONGO_INITDB_ROOT_PASSWORD: password
+      MONGO_INITDB_DATABASE: fanso
+    volumes:
+      - mongo-data:/data/db
+
+  redis:
+    image: redis
+    restart: always
+    ports:
+      - 6379:6379
+    volumes:
+      - redis-cache:/data
+
+  api:
+    build: 
+      context: ./
+      target: prod
+    restart: always
+    ports:
+      - 8080:8080
+    depends_on:
+      - mongo
+      - redis
+    environment:
+      - NODE_ENV=${NODE_ENV:-dev}
+      - HTTP_PORT=8080
+      - TOKEN_SECRET=s6u6jq3-Z5dn]H8}
+      - MONGO_URI=mongodb://mongo:27017/fanso
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_DB=0
+      - REDIS_PREFIX=bee_queue
+      - DOMAIN=${DOMAIN:-insider-hub.com}
+      - BASE_URL=${API_ENDPOINT:-https://api.dev.insider-hub.com}
+      - USER_URL=${USER_ENDPOINT:-https://dev.insider-hub.com}
+      - TEMPLATE_DIR=templates
+      - MAILER_CONCURRENCY=1
+      - EMAIL_VERIFIED_SUCCESS_URL=https://dev.insider-hub.com/auth/email-verified-success
+      # CLUSTER_MODE=
+      - HASH_PW_CLIENT=false
+    volumes:
+      - api-public:/app/public:rw
+    command: npm run start:dev
+
+volumes:
+  mongo-data:
+  redis-cache:
+    driver: local
+  api-public:

@@ -1,0 +1,30 @@
+{
+  "expo": {
+    "name": "user-mobile",
+    "slug": "user-mobile",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/GovLinklogo.png",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/GovLinklogo.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/GovLinklogo.png"
+      
+
+      },
+      "edgeToEdgeEnabled": true
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    }
+  }
+}
