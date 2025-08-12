@@ -56,13 +56,17 @@ FUTURA_SOLUTIONS_GovLink/
 
 | Document | Link |
 |--------|------|
-| System Architecture | [Architecture Diagram](docs/diagrams/architecture.png) |
-| ER Diagram | [ER Diagram](docs/diagrams/er-diagram.png) |
-| Sequence Diagrams | [Sequence Diagrams](docs/diagrams/sequence-diagrams.png) |
-| API Documentation | [API Docs](docs/api/) |
-| 5-Day MVP Plan | [Implementation Plan](docs/implementation/5-day-plan.md) |
-| User Guide | [User Manual](docs/user-guides/user-guide.md) |
-| File Structure | [Full Structure](docs/implementation/file-structure.md) |
+| Problem Background | [View](docs/planning/problem-background.md) |
+| Problem Statement | [View](docs/planning/problem-statement.md) |
+| Solution & Features | [View](docs/planning/solution-features.md) |
+| Target Users | [View](docs/planning/target-users.md) |
+| Assumptions & Limitations | [View](docs/planning/assumptions-limitations.md) |
+| ER Diagram | [View](docs/diagrams/ER-Diagram.md) |
+| Sequence Diagrams | [View](docs/diagrams/sequence-diagrams.md) |
+| 5-Day Implementation Plan | [View](docs/implementation/5-day-plan.md) |
+| File Structure | [View](docs/implementation/file-structure.md) |
+| User Guide | [View](docs/user-guides/user-guide.md) |
+| Admin Guide | [View](docs/user-guides/admin-guide.md) |
 
 ---
 
