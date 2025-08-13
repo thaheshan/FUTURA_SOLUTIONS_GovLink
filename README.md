@@ -27,6 +27,7 @@ From NIC reissue to appointment booking, we’ve built a **mobile-first, real-ti
 ---
 
 ## 📂 Project Structure
+```
 FUTURA_SOLUTIONS_GovLink/
 ├── user_mobile/ # Citizen mobile app (React Native)
 ├── user_web/ # Government admin panel (React.js)
@@ -34,7 +35,7 @@ FUTURA_SOLUTIONS_GovLink/
 ├── database/ # DB scripts, migrations, seeders
 ├── shared/ # Shared types & utilities
 └── docs/ # Documentation, diagrams, plans
-
+```
 
 ---
 
