@@ -1,69 +1,192 @@
+// src/styles/globalStyles.ts
+
 import { StyleSheet } from 'react-native';
 import colors from './Colors';
 import spacing from './Spacing';
-import typography from './Typography';
+import { textVariants } from './Typography';
 
-export default StyleSheet.create({
-  button: {
+// Define shadows as reusable objects (outside StyleSheet.create)
+const shadow = {
+  shadowColor: colors.black,
+  shadowOffset: { width: 0, height: 2 },
+  shadowOpacity: 0.1,
+  shadowRadius: 4,
+  elevation: 2,
+};
+
+const shadowLg = {
+  ...shadow,
+  shadowOffset: { width: 0, height: 4 },
+  shadowOpacity: 0.15,
+  shadowRadius: 8,
+  elevation: 4,
+};
+
+// Now use them in StyleSheet.create
+const globalStyles = StyleSheet.create({
+  // === LAYOUT ===
+  container: {
+    flex: 1,
+    backgroundColor: colors.backgroundPrimary,
+    padding: spacing.md,
+  },
+  row: {
+    flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.primary,
-    borderRadius: 8,
+  },
+  rowSpaceBetween: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  center: {
     justifyContent: 'center',
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
+    alignItems: 'center',
+  },
+
+  // === TYPOGRAPHY ===
+  title: {
+    ...textVariants.title,
+    color: colors.textPrimary,
+    marginBottom: spacing.sm,
+  },
+  heading: {
+    ...textVariants.heading,
+    color: colors.textPrimary,
+    marginBottom: spacing.sm,
+  },
+  subtitle: {
+    ...textVariants.subtitle,
+    color: colors.textPrimary,
+    marginBottom: spacing.sm,
+  },
+  body: {
+    ...textVariants.body,
+    color: colors.textPrimary,
+  },
+  bodySinhala: {
+    ...textVariants.bodySinhala,
+    color: colors.textPrimary,
+  },
+  bodyTamil: {
+    ...textVariants.bodyTamil,
+    color: colors.textPrimary,
   },
   buttonText: {
-    ...typography.button,
+    ...textVariants.button,
     color: colors.white,
+    textAlign: 'center',
   },
+  label: {
+    ...textVariants.label,
+    color: colors.textSecondary,
+  },
+  caption: {
+    ...textVariants.caption,
+    color: colors.textSecondary,
+  },
+
+  // === BUTTONS ===
+  button: {
+    backgroundColor: colors.primary,
+    borderRadius: 8,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  buttonSecondary: {
+    backgroundColor: colors.secondary,
+    borderRadius: 8,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  buttonOutline: {
+    backgroundColor: colors.transparent,
+    borderColor: colors.primary,
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  // === INPUTS ===
+  input: {
+    backgroundColor: colors.white,
+    borderColor: colors.gray,
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: spacing.sm,
+    marginBottom: spacing.md,
+    ...textVariants.body,
+  },
+  inputError: {
+    borderColor: colors.error,
+  },
+
+  // === CARDS ===
   card: {
     backgroundColor: colors.white,
     borderRadius: 8,
-    elevation: 2,
+    padding: spacing.md,
     marginBottom: spacing.md,
+    ...shadow,
+  },
+  cardElevated: {
+    backgroundColor: colors.white,
+    borderRadius: 8,
     padding: spacing.md,
-    shadowColor: colors.black,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    marginBottom: spacing.md,
+    ...shadowLg,
   },
-  container: {
-    backgroundColor: colors.background,
-    flex: 1,
-    padding: spacing.md,
+
+  // === SECTIONS ===
+  section: {
+    marginBottom: spacing.lg,
   },
-  detailLabel: {
-    ...typography.body,
-    color: colors.textSecondary,
+  sectionTitle: {
+    ...textVariants.subtitle,
+    color: colors.primary,
+    marginBottom: spacing.sm,
   },
+
+  // === DETAIL ROWS ===
   detailRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginBottom: spacing.sm,
   },
+  detailLabel: {
+    ...textVariants.label,
+    color: colors.textSecondary,
+  },
   detailValue: {
-    ...typography.body,
-    fontWeight: '500',
+    ...textVariants.body,
+    fontWeight: '500' as '500',
+    color: colors.textPrimary,
   },
-  input: {
-    backgroundColor: colors.white,
-    borderColor: colors.border,
-    borderRadius: 8,
-    borderWidth: 1,
-    marginBottom: spacing.md,
-    padding: spacing.sm,
-    ...typography.input,
+
+  // === UTILITIES ===
+  textCenter: {
+    textAlign: 'center',
   },
-  sectionTitle: {
-    ...typography.title,
-    color: colors.primary,
-    marginBottom: spacing.sm,
+  textRight: {
+    textAlign: 'right',
   },
-  shadow: {
-    elevation: 2,
-    shadowColor: colors.black,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+  divider: {
+    height: 1,
+    backgroundColor: colors.lightGray,
+    marginVertical: spacing.md,
+  },
+  errorText: {
+    ...textVariants.caption,
+    color: colors.error,
+    marginTop: spacing.xs,
   },
 });
+
+export default globalStyles;

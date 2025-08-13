@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { View, StyleSheet, Image } from 'react-native';
-import { Button, Input } from '../../components/common';
-import { useAuth } from '../../hooks/useAuth';
+import { Button } from '../../components/common/Button';
+import { Input } from '../../components/common/Input';
+import { useAuth } from '../../Hooks/UserAuth';
 import { colors, spacing } from '../../styles';
 
 export default function LoginScreen({ navigation }) {

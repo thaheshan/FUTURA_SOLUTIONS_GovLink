@@ -1,1 +1,0 @@
-This stores user accounts linked to a creator which has access to the creator accounts
