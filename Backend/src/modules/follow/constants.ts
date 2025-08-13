@@ -1,1 +1,0 @@
-export const FOLLOW_CHANNEL = 'FOLLOW_CHANNEL';
