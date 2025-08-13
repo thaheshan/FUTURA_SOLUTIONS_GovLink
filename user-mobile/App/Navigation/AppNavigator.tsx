@@ -4,7 +4,7 @@ import { View, Text, StyleSheet } from 'react-native';
 export default function AppNavigator() {
   return (
     <View style={styles.container}>
-      <Text style={styles.text}>govlink</Text>
+      <Text style={styles.text}>govLink</Text>
     </View>
   );
 }
