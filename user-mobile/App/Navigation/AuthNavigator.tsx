@@ -1,9 +1,9 @@
 import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator, NativeStackScreenProps } from '@react-navigation/native-stack';
-import GovLinkLogin from '../Screens/Auth/intro';
 import RegistrationFlow from '../Screens/Auth/SignupScreen';
 import OTPVerification from '../Screens/Auth/AuthVerification';
+import GovLinkLogin from '../Screens/Auth/LoginScreen';
 
 export type RootStackParamList = {
   Login: undefined;
@@ -24,11 +24,7 @@ export default function AppNavigator() {
       <Stack.Navigator initialRouteName="Login">
         <Stack.Screen 
           name="Login" 
-          component={({ navigation }: LoginScreenProps) => (
-            <GovLinkLogin 
-              onNavigateToSignup={() => navigation.navigate('Registration')}
-            />
-          )}
+          component={GovLinkLogin}
           options={{ headerShown: false }}
         />
         <Stack.Screen 
