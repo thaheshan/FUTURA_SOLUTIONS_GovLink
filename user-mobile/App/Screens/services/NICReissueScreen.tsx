@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { ScrollView, StyleSheet } from 'react-native';
 import { Button, Card } from '../../components/common';
 import NICReissueForm from '../../components/services/NICReissueForm';
-import { colors, spacing } from '../../styles';
+import { colors, spacing } from '../../Styles';
 import { submitNICReissue } from '../../services/api/servicesApi';
 
 export default function NICReissueScreen({ navigation }) {
