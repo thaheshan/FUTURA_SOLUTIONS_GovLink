@@ -1,0 +1,54 @@
+{
+  "name": "futura_solutions_govlink",
+  "version": "1.0.0",
+  "description": "> **Tech Triathon Hackathon 2025** | 11th–16th August  \r > **Team**: Prageesha, Tharushiyaa, Loheesan, Thaheshan, Gokul, Thibakar, Shakthi, Akaash",
+  "keywords": [],
+  "homepage": "https://github.com/thaheshan/FUTURA_SOLUTIONS_GovLink#readme",
+  "bugs": {
+    "url": "https://github.com/thaheshan/FUTURA_SOLUTIONS_GovLink/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/thaheshan/FUTURA_SOLUTIONS_GovLink.git"
+  },
+  "license": "ISC",
+  "author": "shakthi",
+  "type": "commonjs",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "@types/dotenv": "^6.1.1",
+    "@types/mongoose": "^5.11.96",
+    "@types/twilio": "^3.19.2",
+    "bcryptjs": "^3.0.2",
+    "compression": "^1.8.1",
+    "dotenv": "^17.2.1",
+    "express": "^5.1.0",
+    "joi": "^18.0.0",
+    "mongoose": "^8.17.1",
+    "nodemailer": "^7.0.5",
+    "save-dev": "^0.0.1-security",
+    "twilio": "^5.8.0"
+  },
+  "devDependencies": {
+    "@types/bcrypt": "^6.0.0",
+    "@types/bcryptjs": "^2.4.6",
+    "@types/compression": "^1.8.1",
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.3",
+    "@types/helmet": "^0.0.48",
+    "@types/joi": "^17.2.2",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/morgan": "^1.9.10",
+    "@types/node": "^24.2.1",
+    "@types/nodemailer": "^6.4.17",
+    "@types/redis": "^4.0.10",
+    "ts-node-dev": "^2.0.0",
+    "typescript": "^5.9.2"
+  }
+}
