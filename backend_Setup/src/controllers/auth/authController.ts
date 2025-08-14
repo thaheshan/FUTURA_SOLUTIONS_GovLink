@@ -4,6 +4,8 @@ import { sendSuccess, sendError } from '../../utils/response';
 import { Logger } from '../../utils/logger';
 import { OTPType } from '../../types/auth';
 
+const authService = new AuthService();
+
 export class AuthController {
   public async register(req: Request, res: Response): Promise<void> {
     try {
