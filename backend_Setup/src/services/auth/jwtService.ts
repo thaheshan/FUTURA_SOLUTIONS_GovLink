@@ -7,17 +7,25 @@ export class JWTService {
   private redis = RedisClient.getInstance();
 
   public generateAccessToken(payload: Omit<IJwtPayload, 'iat' | 'exp'>): string {
-    return jwt.sign(payload, jwtConfig.secret as jwt.Secret, {
-      expiresIn: jwtConfig.expiresIn,
-      algorithm: jwtConfig.algorithm as jwt.Algorithm
-    });
+    return jwt.sign(
+      payload,
+      jwtConfig.secret as jwt.Secret,
+      {
+        expiresIn: jwtConfig.expiresIn as jwt.SignOptions['expiresIn'],
+        algorithm: jwtConfig.algorithm as jwt.SignOptions['algorithm']
+      }
+    );
   }
 
   public generateRefreshToken(payload: Omit<IJwtPayload, 'iat' | 'exp'>): string {
-    return jwt.sign(payload, jwtConfig.refreshSecret, {
-      expiresIn: jwtConfig.refreshExpiresIn,
-      algorithm: jwtConfig.algorithm
-    });
+    return jwt.sign(
+      payload,
+      jwtConfig.refreshSecret as jwt.Secret,
+      {
+        expiresIn: jwtConfig.refreshExpiresIn as jwt.SignOptions['expiresIn'],
+        algorithm: jwtConfig.algorithm as jwt.SignOptions['algorithm']
+      }
+    );
   }
 
   public async verifyAccessToken(token: string): Promise<IJwtPayload> {

@@ -1,17 +1,17 @@
 import * as crypto from 'crypto';
-import nodemailer from 'nodemailer';
-import twilio from 'twilio';
+import * as nodemailer from 'nodemailer';
+import Twilio from 'twilio';
 import { config } from '../../config/environment';
 import { OTP } from '../../models/OTP';
 import { OTPType } from '../../types/auth';
 
 export class OTPService {
   private emailTransporter: nodemailer.Transporter;
-  private twilioClient: twilio.Twilio;
+  private twilioClient: Twilio.Twilio;
 
   constructor() {
     // Email transporter
-    this.emailTransporter = nodemailer.createTransporter({
+    this.emailTransporter = nodemailer.createTransport({
       host: config.email.host,
       port: config.email.port,
       secure: false,
@@ -23,7 +23,7 @@ export class OTPService {
 
     // SMS client
     if (config.sms.accountSid && config.sms.authToken) {
-      this.twilioClient = twilio(config.sms.accountSid, config.sms.authToken);
+      this.twilioClient = Twilio(config.sms.accountSid, config.sms.authToken);
     }
   }
 

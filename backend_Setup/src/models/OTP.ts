@@ -2,11 +2,11 @@ import { Schema, model, Document } from 'mongoose';
 import type { IOTP } from '../types/auth';
 import { OTPType } from '../types/auth';
 
-const otpSchema = new Schema<IOTP>({
-  userId: {
-    type: Schema.Types.ObjectId,
+const OTPSchema = new Schema<IOTP>({
+  userId: { 
+    type: Schema.Types.ObjectId as any, // 👈 bypass strict type
     ref: 'User',
-    required: true
+    required: true 
   },
   code: {
     type: String,
@@ -31,6 +31,6 @@ const otpSchema = new Schema<IOTP>({
 });
 
 // Index for faster queries
-otpSchema.index({ userId: 1, type: 1 });
+OTPSchema.index({ userId: 1, type: 1 });
 
-export const OTP = model<IOTP>('OTP', otpSchema);
+export const OTP = model<IOTP>('OTP', OTPSchema);
