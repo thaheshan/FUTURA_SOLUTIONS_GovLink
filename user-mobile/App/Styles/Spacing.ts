@@ -1,17 +1,14 @@
-// src/styles/spacing.ts
-
 export const spacing = {
-  // Spacing scale in numbers (dp - density-independent pixels)
   none: 0,
-  xs: 2,
-  sm: 4,
-  md: 8,
-  lg: 16,
-  xl: 24,
-  '2xl': 32,
-  '3xl': 40,
-  '4xl': 48,
-  '5xl': 64,
+  xs: 4,
+  sm: 8,
+  md: 16,
+  lg: 24,
+  xl: 32,
+  '2xl': 40,
+  '3xl': 48,
+  '4xl': 64,
+  '5xl': 80,
 };
 
 export default spacing;
