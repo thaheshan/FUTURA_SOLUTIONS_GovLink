@@ -92,17 +92,15 @@ const GovLinkLogin: React.FC<LoginScreenProps> = ({ navigation }) => {
     }
   };
 
-  // Handle forgot password
+  // Handle forgot password - Updated to navigate to ForgotPasswordScreen
   const handleForgotPassword = () => {
-    Alert.alert(
-      'Forgot Password',
-      'Password reset functionality will be available soon.',
-      [{ text: 'OK' }]
-    );
+    if (isLoading) return; // Prevent navigation while loading
+    navigation.navigate('ForgotPassword');
   };
 
   // Handle navigation to signup
   const handleNavigateToSignup = () => {
+    if (isLoading) return; // Prevent navigation while loading
     navigation.navigate('Registration');
   };
 
@@ -199,13 +197,18 @@ const GovLinkLogin: React.FC<LoginScreenProps> = ({ navigation }) => {
             />
           </View>
 
-          {/* Forgot Password */}
+          {/* Forgot Password - Updated with proper navigation */}
           <TouchableOpacity 
             style={styles.forgotContainer}
             onPress={handleForgotPassword}
             disabled={isLoading}
           >
-            <Text style={styles.forgotText}>Forgot Password?</Text>
+            <Text style={[
+              styles.forgotText, 
+              isLoading && styles.disabledText
+            ]}>
+              Forgot Password?
+            </Text>
           </TouchableOpacity>
 
           {/* Login Button */}
@@ -231,11 +234,16 @@ const GovLinkLogin: React.FC<LoginScreenProps> = ({ navigation }) => {
 
           {/* Sign Up Button */}
           <TouchableOpacity 
-            style={styles.signUpButton}
+            style={[styles.signUpButton, isLoading && styles.secondaryButtonDisabled]}
             onPress={handleNavigateToSignup}
             disabled={isLoading}
           >
-            <Text style={styles.signUpButtonText}>Sign Up</Text>
+            <Text style={[
+              styles.signUpButtonText,
+              isLoading && styles.disabledText
+            ]}>
+              Sign Up
+            </Text>
           </TouchableOpacity>
 
           {/* Terms and Privacy */}
@@ -267,7 +275,6 @@ const styles = StyleSheet.create({
   logoContainer: {
     alignItems: 'flex-start',
     top: 20,
-    
   },
   logoImage: {
     width: 120,
@@ -344,6 +351,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#4D7399',
     fontWeight: '500',
+    textDecorationLine: 'underline', // Added underline for better UX
   },
   loginButton: {
     backgroundColor: '#26303B',
@@ -355,6 +363,10 @@ const styles = StyleSheet.create({
   },
   buttonDisabled: {
     backgroundColor: '#4D7399',
+    opacity: 0.6,
+  },
+  secondaryButtonDisabled: {
+    backgroundColor: '#F3F4F6',
     opacity: 0.6,
   },
   loadingContainer: {
@@ -387,6 +399,10 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#26303B',
+  },
+  disabledText: {
+    color: '#9CA3AF',
+    textDecorationLine: 'none',
   },
   termsContainer: {
     alignItems: 'center',
