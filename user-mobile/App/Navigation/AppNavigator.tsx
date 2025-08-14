@@ -5,6 +5,7 @@ import { createNativeStackNavigator, NativeStackNavigationProp } from '@react-na
 import GovLinkLogin from '../Screens/Auth/LoginScreen';
 import RegistrationFlow from '../Screens/Auth/SignupScreen';
 import OTPVerification from '../Screens/Auth/AuthVerification';
+import ForgotPasswordScreen from '../Screens/Auth/ForgotPassword'; // Add ForgotPassword import
 import HomeScreen from '../Screens/Main/HomeScreen';
 import ProfileScreen from '../Screens/Main/ProfileScreen';
 import ServicesScreen from '../Screens/Main/ServiceScreen'; // Add ServicesScreen import
@@ -14,6 +15,7 @@ import FeedScreen from '../Screens/Main/FeedScreen'; // Add FeedScreen import
 export type RootStackParamList = {
   Login: undefined;
   Registration: undefined;
+  ForgotPassword: undefined; // Add ForgotPassword to the type definition
   OTPVerification: {
     mobileNumber: string;
     fromScreen: string;
@@ -22,7 +24,7 @@ export type RootStackParamList = {
   Profile: undefined;
   Services: undefined; // Add Services to the type definition
   Feed: undefined; // Add Feed to the type definition
-  // Assistant: undefined;    // Uncomment when Assistant screen is created
+  // Assistant: undefined;  // Uncomment when Assistant screen is created
 };
 
 // Navigation prop type for components
@@ -57,6 +59,14 @@ export default function AppNavigator() {
           options={{
             title: 'Register',
             animation: 'slide_from_bottom',
+          }}
+        />
+        <Stack.Screen
+          name="ForgotPassword"
+          component={ForgotPasswordScreen}
+          options={{
+            title: 'Reset Password',
+            animation: 'slide_from_right',
           }}
         />
         <Stack.Screen
@@ -100,10 +110,10 @@ export default function AppNavigator() {
             animation: 'slide_from_right',
           }}
         />
-        {/* 
-        Uncomment these screens when you create them:
-        
-        <Stack.Screen
+        {/*
+         Uncomment these screens when you create them:
+         
+         <Stack.Screen
           name="Assistant"
           component={AssistantScreen}
           options={{
