@@ -1,0 +1,6 @@
+/* src/components/layout/Sidebar.css */
+.sidebar {
+  width: 200px;
+  background-color: #fff;
+  padding: 20px;
+}
