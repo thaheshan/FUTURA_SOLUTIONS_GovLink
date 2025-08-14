@@ -1,22 +1,14 @@
-// src/styles/typography.ts
-
+// src/styles/Typography.ts
 import { Platform } from 'react-native';
 
-// Define font families (must match loaded fonts)
-const fontFamilies = {
-  primary: 'NotoSans',        // English
-  sinhala: 'IskoolaPota',     // Sinhala
-  tamil: 'NotoSansTamil',     // Tamil
-};
-
-// Export font families for use in Text styles
+// Font families
 export const fontFamily = {
   primary: Platform.select({ ios: 'NotoSans', android: 'NotoSans' }),
   sinhala: Platform.select({ ios: 'IskoolaPota', android: 'IskoolaPota' }),
   tamil: Platform.select({ ios: 'NotoSansTamil', android: 'NotoSansTamil' }),
 };
 
-// Font Sizes (in numbers, not strings)
+// Font sizes
 export const fontSize = {
   xs: 12,
   sm: 14,
@@ -31,7 +23,7 @@ export const fontSize = {
   '6xl': 72,
 };
 
-// Font Weights (as numbers)
+// Font weights
 export const fontWeight = {
   thin: '100',
   extralight: '200',
@@ -44,7 +36,7 @@ export const fontWeight = {
   black: '900',
 } as const;
 
-// Line Heights (as numbers)
+// Line heights
 export const lineHeight = {
   none: 1,
   tight: 1.25,
@@ -54,8 +46,7 @@ export const lineHeight = {
   loose: 2,
 };
 
-// Letter Spacing (NOT supported in React Native as strings)
-// You can define it as numbers in pixels (but rarely used)
+// Letter spacing
 export const letterSpacing = {
   tighter: -0.8,
   tight: -0.4,
@@ -65,57 +56,57 @@ export const letterSpacing = {
   widest: 1.2,
 };
 
-// Reusable Typography Styles (✅ Use These in Your Components)
+// Text variants
 export const textVariants = {
   title: {
-    fontFamily: fontFamilies.primary,
+    fontFamily: fontFamily.primary,
     fontSize: fontSize['3xl'],
     fontWeight: fontWeight.bold,
     lineHeight: lineHeight.tight,
   },
   heading: {
-    fontFamily: fontFamilies.primary,
+    fontFamily: fontFamily.primary,
     fontSize: fontSize.xl,
     fontWeight: fontWeight.semibold,
     lineHeight: lineHeight.snug,
   },
   subtitle: {
-    fontFamily: fontFamilies.primary,
+    fontFamily: fontFamily.primary,
     fontSize: fontSize.lg,
     fontWeight: fontWeight.medium,
     lineHeight: lineHeight.normal,
   },
   body: {
-    fontFamily: fontFamilies.primary,
+    fontFamily: fontFamily.primary,
     fontSize: fontSize.base,
     fontWeight: fontWeight.normal,
     lineHeight: lineHeight.normal,
   },
   bodySinhala: {
-    fontFamily: fontFamilies.sinhala,
+    fontFamily: fontFamily.sinhala,
     fontSize: fontSize.base,
     fontWeight: fontWeight.normal,
     lineHeight: lineHeight.normal,
   },
   bodyTamil: {
-    fontFamily: fontFamilies.tamil,
+    fontFamily: fontFamily.tamil,
     fontSize: fontSize.base,
     fontWeight: fontWeight.normal,
     lineHeight: lineHeight.normal,
   },
   button: {
-    fontFamily: fontFamilies.primary,
+    fontFamily: fontFamily.primary,
     fontSize: fontSize.base,
     fontWeight: fontWeight.medium,
   },
   caption: {
-    fontFamily: fontFamilies.primary,
+    fontFamily: fontFamily.primary,
     fontSize: fontSize.sm,
     fontWeight: fontWeight.normal,
     lineHeight: lineHeight.normal,
   },
   label: {
-    fontFamily: fontFamilies.primary,
+    fontFamily: fontFamily.primary,
     fontSize: fontSize.sm,
     fontWeight: fontWeight.medium,
   },
