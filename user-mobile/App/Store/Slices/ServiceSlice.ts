@@ -1,4 +1,4 @@
-// src/store/slices/servicesSlice.ts - Available Services
+// src/store/slices/servicesSlice.ts
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { servicesApi } from '../../Services/API/ServiceAPI';
@@ -59,6 +59,16 @@ export interface SearchFilters {
   fee: string | null;
 }
 
+// Add TrackingFilters interface
+export interface TrackingFilters {
+  status: 'all' | 'pending' | 'completed' | 'rejected';
+  dateRange: {
+    start: string;
+    end: string;
+  };
+  serviceType: string | null;
+}
+
 export interface SearchResult {
   results: Service[];
   query: string;
@@ -81,6 +91,9 @@ export interface ServicesState {
   searchResults: Service[];
   searchQuery: string;
   searchFilters: SearchFilters;
+
+  // Tracking filters
+  trackingFilters: TrackingFilters;
   
   // Categories
   categories: ServiceCategory[];
@@ -290,6 +303,16 @@ const initialState: ServicesState = {
     category: null,
     type: null,
     fee: null,
+  },
+
+  // Tracking filters
+  trackingFilters: {
+    status: 'all',
+    dateRange: {
+      start: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 days ago
+      end: new Date().toISOString()
+    },
+    serviceType: null
   },
   
   // Categories
@@ -570,6 +593,11 @@ const servicesSlice = createSlice({
     setSearchFilters: (state, action: PayloadAction<Partial<SearchFilters>>) => {
       state.searchFilters = { ...state.searchFilters, ...action.payload };
     },
+
+    // Set tracking filters
+    setTrackingFilters: (state, action: PayloadAction<Partial<TrackingFilters>>) => {
+      state.trackingFilters = { ...state.trackingFilters, ...action.payload };
+    },
     
     // Reset search filters
     resetSearchFilters: (state) => {
@@ -739,6 +767,7 @@ export const {
   clearSearch,
   setSearchQuery,
   setSearchFilters,
+  setTrackingFilters,
   resetSearchFilters,
   setCurrentService,
   clearCurrentService,
