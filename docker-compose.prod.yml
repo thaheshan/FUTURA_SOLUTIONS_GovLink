@@ -1,0 +1,34 @@
+version: '3.8'
+
+services:
+  backend:
+    environment:
+      - NODE_ENV=production
+    command: node dist/server.js
+    deploy:
+      replicas: 3
+      update_config:
+        parallelism: 1
+        delay: 10s
+      restart_policy:
+        condition: on-failure
+
+  frontend:
+    environment:
+      - NODE_ENV=production
+    command: serve -s build -l 3000
+    deploy:
+      replicas: 2
+      update_config:
+        parallelism: 2
+        delay: 5s
+
+  nginx:
+    ports:
+      - "80:80"
+      - "443:443"
+    deploy:
+      replicas: 2
+      placement:
+        constraints:
+          - node.role == manager
