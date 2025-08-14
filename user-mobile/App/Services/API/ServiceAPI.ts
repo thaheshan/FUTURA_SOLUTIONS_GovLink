@@ -1,142 +1,111 @@
-// Define types matching the slice
-export type Service = {
-  id: string;
-  name: string;
-  description: string;
-  category: string;
-  icon: string;
-  isActive: boolean;
-};
+import axios from 'axios';
+import { Service, ServiceRequirement, ServiceFee, SearchFilters } from '../../Store/Slices/ServiceSlice';
 
-export type Appointment = {
-  id: string;
-  serviceId: string;
-  serviceName: string;
-  date: string;
-  time: string;
-  office: string;
-  status: 'Pending' | 'Confirmed' | 'Cancelled' | 'Completed';
-  referenceNumber: string;
-};
+const API_BASE_URL = 'https://api.gov-services.lk';
 
-export type TrackingRequest = {
-  id: string;
-  serviceId: string;
-  serviceName: string;
-  submittedDate: string;
-  status: 'Submitted' | 'Processing' | 'Ready' | 'Rejected' | 'Completed';
-  assignedOffice?: string;
-  assignedOfficer?: string;
-  estimatedCompletion?: string;
-  referenceNumber: string;
-};
-
-// Mock data for demonstration
-const MOCK_SERVICES: Service[] = [
-  {
-    id: 'registry',
-    name: 'Registry Services',
-    description: 'National Identity Card, Birth/Death Certificates',
-    category: 'Personal Documents',
-    icon: 'id-card',
-    isActive: true,
+export const servicesApi = {
+  getAllServices: async () => {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/services`);
+      return {
+        success: true,
+        data: response.data,
+        message: 'Services fetched successfully'
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        message: error.response?.data?.message || 'Failed to fetch services',
+        error: error.response?.data || error.message
+      };
+    }
   },
-  {
-    id: 'land',
-    name: 'Land Registration',
-    description: 'Land transfers, deeds registration',
-    category: 'Property',
-    icon: 'landmark',
-    isActive: false,
+
+  getServiceById: async (id: string) => {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/services/${id}`);
+      return {
+        success: true,
+        data: response.data,
+        message: 'Service details fetched'
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        message: error.response?.data?.message || 'Service not found',
+        error: error.response?.data || error.message
+      };
+    }
   },
-  // Add other services...
-];
 
-// API functions
-export const fetchServicesApi = async (): Promise<{ data: Service[] }> => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve({ data: MOCK_SERVICES });
-    }, 500);
-  });
-};
+  getServicesByDistrict: async (districtId: string) => {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/services/district/${districtId}`);
+      return {
+        success: true,
+        data: response.data,
+        message: 'District services fetched'
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        message: error.response?.data?.message || 'Failed to fetch district services',
+        error: error.response?.data || error.message
+      };
+    }
+  },
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-export const submitNICReissueApi = async (
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  _formData: any
-): Promise<{
-  data: {
-    success: boolean;
-    trackingRequest: TrackingRequest;
-  };
-}> => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve({
-        data: {
-          success: true,
-          trackingRequest: {
-            id: `TRK-${Date.now()}`,
-            serviceId: 'registry',
-            serviceName: 'NIC Reissue',
-            submittedDate: new Date().toISOString(),
-            status: 'Submitted',
-            assignedOffice: 'Colombo DS Office',
-            referenceNumber: `REF-${Math.floor(100000 + Math.random() * 900000)}`,
-          },
-        },
+  searchServices: async (query: string, filters: SearchFilters) => {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/services/search`, {
+        params: { query, ...filters }
       });
-    }, 1000);
-  });
-};
+      return {
+        success: true,
+        data: response.data.results,
+        total: response.data.total,
+        message: 'Search completed'
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        message: error.response?.data?.message || 'Search failed',
+        error: error.response?.data || error.message
+      };
+    }
+  },
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-export const fetchAppointmentsApi = async (
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  _userId: string
-): Promise<{ data: Appointment[] }> => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve({
-        data: [
-          {
-            id: 'APT-001',
-            serviceId: 'registry',
-            serviceName: 'NIC Reissue',
-            date: '2023-08-15',
-            time: '10:30 AM',
-            office: 'Colombo DS Office',
-            status: 'Confirmed',
-            referenceNumber: 'REF-123456',
-          },
-        ],
-      });
-    }, 500);
-  });
-};
+  getServiceRequirements: async (serviceId: string) => {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/services/${serviceId}/requirements`);
+      return {
+        success: true,
+        data: response.data,
+        message: 'Requirements fetched'
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        message: error.response?.data?.message || 'Requirements not found',
+        error: error.response?.data || error.message
+      };
+    }
+  },
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-export const fetchTrackingRequestsApi = async (
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  _userId: string
-): Promise<{ data: TrackingRequest[] }> => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve({
-        data: [
-          {
-            id: 'TRK-001',
-            serviceId: 'registry',
-            serviceName: 'NIC Reissue',
-            submittedDate: '2023-08-10',
-            status: 'Processing',
-            assignedOffice: 'Colombo DS Office',
-            estimatedCompletion: '2023-08-20',
-            referenceNumber: 'REF-123456',
-          },
-        ],
-      });
-    }, 500);
-  });
+  getServiceFees: async (serviceId: string) => {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/services/${serviceId}/fees`);
+      return {
+        success: true,
+        data: response.data,
+        message: 'Fees fetched'
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        message: error.response?.data?.message || 'Fees not found',
+        error: error.response?.data || error.message
+      };
+    }
+  }
 };
