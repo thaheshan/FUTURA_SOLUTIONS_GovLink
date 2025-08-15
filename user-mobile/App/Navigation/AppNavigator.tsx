@@ -2,38 +2,42 @@
 import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator, NativeStackNavigationProp } from '@react-navigation/native-stack';
+
 import GovLinkLogin from '../Screens/Auth/LoginScreen';
 import RegistrationFlow from '../Screens/Auth/SignupScreen';
 import OTPVerification from '../Screens/Auth/AuthVerification';
-import ForgotPasswordScreen from '../Screens/Auth/ForgotPassword'; // Add ForgotPassword import
+import ForgotPasswordScreen from '../Screens/Auth/ForgotPassword';
 import HomeScreen from '../Screens/Main/HomeScreen';
 import ProfileScreen from '../Screens/Main/ProfileScreen';
-import ServicesScreen from '../Screens/Main/ServiceScreen'; // Add ServicesScreen import
-import FeedScreen from '../Screens/Main/FeedScreen'; // Add FeedScreen import
+import ServicesScreen from '../Screens/Main/ServiceScreen';
+import FeedScreen from '../Screens/Main/FeedScreen';
+import AIAssistantScreen from '../Screens/Main/AIAssistantScreen';
+import BookAppointmentScreen from '../Screens/Appointments/BookAppointmentScreen'; // ✅ Import BookAppointment Screen
+import ComingSoonScreen from '../components/common/ComingSoon'; // ✅ Import Coming Soon Screen
 
-// Define your navigation types
+// Unified Root Stack Params (Legacy + New + Coming Soon)
 export type RootStackParamList = {
   Login: undefined;
   Registration: undefined;
-  ForgotPassword: undefined; // Add ForgotPassword to the type definition
+  ForgotPassword: undefined;
   OTPVerification: {
-    mobileNumber: string;
-    fromScreen: string;
+    mobileNumber?: string;
+    phoneNumber?: string;
+    fromScreen?: string;
   };
   Home: undefined;
   Profile: undefined;
-  Services: undefined; // Add Services to the type definition
-  Feed: undefined; // Add Feed to the type definition
-  // Assistant: undefined;  // Uncomment when Assistant screen is created
+  Services: undefined;
+  Feed: undefined;
+  Assistant: undefined; // ✅ Now included
+  AIAssistant: undefined;
+  BookAppointment: undefined; // ✅ Added BookAppointment Screen
+  ComingSoon: undefined; // ✅ Added Coming Soon Screen
 };
 
-// Navigation prop type for components
 export type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
-
-// Create the stack navigator with types
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
-// Main App Navigator
 export default function AppNavigator() {
   return (
     <NavigationContainer>
@@ -50,7 +54,7 @@ export default function AppNavigator() {
           component={GovLinkLogin}
           options={{
             title: 'Login',
-            gestureEnabled: false, // Disable swipe back on login screen
+            gestureEnabled: false,
           }}
         />
         <Stack.Screen
@@ -82,8 +86,8 @@ export default function AppNavigator() {
           component={HomeScreen}
           options={{
             title: 'Home',
-            gestureEnabled: false, // Disable swipe back on home screen
-            animation: 'fade_from_bottom',
+            gestureEnabled: true,
+            animation: 'fade',
           }}
         />
         <Stack.Screen
@@ -91,7 +95,8 @@ export default function AppNavigator() {
           component={ProfileScreen}
           options={{
             title: 'Profile',
-            animation: 'slide_from_right',
+            animation: 'fade',
+            gestureEnabled: true,
           }}
         />
         <Stack.Screen
@@ -99,7 +104,8 @@ export default function AppNavigator() {
           component={ServicesScreen}
           options={{
             title: 'Services',
-            animation: 'slide_from_right',
+            animation: 'fade',
+            gestureEnabled: true,
           }}
         />
         <Stack.Screen
@@ -107,21 +113,37 @@ export default function AppNavigator() {
           component={FeedScreen}
           options={{
             title: 'Feed',
-            animation: 'slide_from_right',
+            animation: 'fade',
+            gestureEnabled: true,
           }}
         />
-        {/*
-         Uncomment these screens when you create them:
-         
-         <Stack.Screen
+        <Stack.Screen
           name="Assistant"
-          component={AssistantScreen}
+          component={AIAssistantScreen}  // Use the same component
           options={{
             title: 'Assistant',
-            animation: 'slide_from_bottom',
+            animation: 'fade',
+            gestureEnabled: true,
           }}
         />
-        */}
+        <Stack.Screen
+          name="BookAppointment"
+          component={BookAppointmentScreen}
+          options={{
+            title: 'Book Appointment',
+            animation: 'slide_from_right',
+            gestureEnabled: true,
+          }}
+        />
+        <Stack.Screen
+          name="ComingSoon"
+          component={ComingSoonScreen}
+          options={{
+            title: 'Coming Soon',
+            animation: 'fade_from_bottom',
+            gestureEnabled: true,
+          }}
+        />
       </Stack.Navigator>
     </NavigationContainer>
   );
