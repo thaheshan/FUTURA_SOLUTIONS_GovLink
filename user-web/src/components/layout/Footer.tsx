@@ -1,9 +1,8 @@
-// src/components/DashboardFooter.tsx
-import React from "react";
+import type React from "react"
 
-const DashboardFooter: React.FC = () => {
+const Footer: React.FC = () => {
   return (
-    <footer className="bg-[#26303B] text-white w-full mt-12">
+    <footer className="bg-[#26303B] text-white w-full mt-auto">
       <div className="max-w-7xl mx-auto px-6 py-5">
         <div className="flex flex-col md:flex-row justify-between items-center gap-4 text-sm">
           {/* Left: Metadata */}
@@ -23,8 +22,7 @@ const DashboardFooter: React.FC = () => {
           {/* Center: Copyright */}
           <div className="text-center text-gray-300">
             <p>
-              Made with{" "}
-              <i className="fas fa-heart text-red-400 mx-1"></i>
+              Made with <i className="fas fa-heart text-red-400 mx-1"></i>
               @GovTech © {new Date().getFullYear()}. All rights reserved.
             </p>
           </div>
@@ -44,7 +42,7 @@ const DashboardFooter: React.FC = () => {
         </div>
       </div>
     </footer>
-  );
-};
+  )
+}
 
-export default DashboardFooter;
+export default Footer
