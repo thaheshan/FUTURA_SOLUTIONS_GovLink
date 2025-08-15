@@ -1,9 +1,14 @@
 import app from './app';
-import { connectMongo } from './config/mongodb';
-import env from './config/environment';
+import { MongoDB } from './config/mongodb';
+import { config } from './config/environment';
 
-connectMongo().then(() => {
-  app.listen(env.port, () => {
-    console.log(`🚀 Server running on port ${env.port}`);
+const mongodb = MongoDB.getInstance();
+
+mongodb.connect().then(() => {
+  app.listen(config.port, () => {
+    console.log(`🚀 Server running on port ${config.port}`);
   });
+}).catch((error) => {
+  console.error('Failed to start server:', error);
+  process.exit(1);
 });
