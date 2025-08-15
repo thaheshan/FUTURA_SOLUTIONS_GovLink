@@ -1,43 +1,50 @@
 import * as dotenv from 'dotenv';
 
 dotenv.config();
-         
+
 export const config = {
-  port: process.env.PORT || 3000,
-  nodeEnv: process.env.NODE_ENV || 'development',
+  // Server Configuration
+  NODE_ENV: process.env.NODE_ENV || 'development',
+  PORT: parseInt(process.env.PORT || '5000'),
   
-  mongodb: {
-    uri: process.env.MONGODB_URI || 'mongodb://localhost:27017/user_backend',
-    testUri: process.env.MONGODB_TEST_URI || 'mongodb://localhost:27017/user_backend_test'
-  },
+  // Database Configuration
+  MONGODB_URI: process.env.MONGODB_URI || 'mongodb://localhost:27017/shakthi_gov',
   
-  redis: {
-    url: process.env.REDIS_URL || 'redis://localhost:6379',
-    password: process.env.REDIS_PASSWORD || ''
-  },
+  // Redis Configuration
+  REDIS_HOST: process.env.REDIS_HOST || 'localhost',
+  REDIS_PORT: parseInt(process.env.REDIS_PORT || '6379'),
+  REDIS_PASSWORD: process.env.REDIS_PASSWORD || '',
   
-  jwt: {
-    secret: process.env.JWT_SECRET || 'fallback-secret-key',
-    refreshSecret: process.env.JWT_REFRESH_SECRET || 'fallback-refresh-secret',
-    expiresIn: process.env.JWT_EXPIRES_IN || '15m',
-    refreshExpiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '7d'
-  },
+  // JWT Configuration
+  JWT_SECRET: process.env.JWT_SECRET || 'your-super-secret-jwt-key',
+  JWT_EXPIRE: process.env.JWT_EXPIRE || '24h',
+  JWT_REFRESH_SECRET: process.env.JWT_REFRESH_SECRET || 'your-refresh-secret-key',
+  JWT_REFRESH_EXPIRE: process.env.JWT_REFRESH_EXPIRE || '7d',
   
-  email: {
-    host: process.env.SMTP_HOST || 'smtp.gmail.com',
-    port: parseInt(process.env.SMTP_PORT || '587'),
-    user: process.env.SMTP_USER || '',
-    pass: process.env.SMTP_PASS || ''
-  },
+  // Email Configuration
+  SMTP_HOST: process.env.SMTP_HOST || 'smtp.gmail.com',
+  SMTP_PORT: parseInt(process.env.SMTP_PORT || '587'),
+  SMTP_USER: process.env.SMTP_USER || '',
+  SMTP_PASS: process.env.SMTP_PASS || '',
   
-  sms: {
-    accountSid: process.env.TWILIO_ACCOUNT_SID || '',
-    authToken: process.env.TWILIO_AUTH_TOKEN || '',
-    phoneNumber: process.env.TWILIO_PHONE_NUMBER || ''
-  },
+  // SMS Configuration (Twilio)
+  TWILIO_ACCOUNT_SID: process.env.TWILIO_ACCOUNT_SID || '',
+  TWILIO_AUTH_TOKEN: process.env.TWILIO_AUTH_TOKEN || '',
+  TWILIO_PHONE_NUMBER: process.env.TWILIO_PHONE_NUMBER || '',
   
-  otp: {
-    expiresIn: parseInt(process.env.OTP_EXPIRES_IN || '300000'), // 5 minutes
-    length: parseInt(process.env.OTP_LENGTH || '6')
-  }
+  // Frontend Configuration
+  FRONTEND_URL: process.env.FRONTEND_URL || 'http://localhost:3000',
+  
+  // File Upload Configuration
+  MAX_FILE_SIZE: parseInt(process.env.MAX_FILE_SIZE || '5242880'), // 5MB
+  ALLOWED_FILE_TYPES: ['application/pdf', 'image/jpeg', 'image/png', 'image/jpg'],
+  
+  // Rate Limiting
+  RATE_LIMIT_WINDOW: parseInt(process.env.RATE_LIMIT_WINDOW || '900000'), // 15 minutes
+  RATE_LIMIT_MAX_REQUESTS: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || '100'),
+  
+  // API Configuration
+  API_VERSION: process.env.API_VERSION || 'v1'
 };
+
+export default config;
