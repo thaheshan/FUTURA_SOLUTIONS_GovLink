@@ -1,12 +1,10 @@
 import { Router } from 'express';
-// authController.ts
+import { authController } from '../../../controllers/auth/authController';
 
-// Your existing code here
-
-export const login = (req, res) => {
-    // Implement login logic here
-    res.send('Login successful');
-};
 const router = Router();
-router.post('/login', login);
+
+// Public routes
+router.post('/register', authController.register.bind(authController));
+router.post('/login', authController.login.bind(authController));
+
 export default router;

@@ -1,97 +1,104 @@
 import * as jwt from 'jsonwebtoken';
-import { jwtConfig } from '../../config/jwt';
-import { IJwtPayload } from '../../types/auth';
-import { RedisClient } from '../../config/redis';
+import { redisClient } from '../../config/redis';
+import config from '../../config/environment';
+
+export interface JWTPayload {
+  userId: string;
+  email: string;
+  role: string;
+  permissions?: string[];
+}
 
 export class JWTService {
-  private redis = RedisClient.getInstance();
-
-  public generateAccessToken(payload: Omit<IJwtPayload, 'iat' | 'exp'>): string {
-    return jwt.sign(
-      payload,
-      jwtConfig.secret as jwt.Secret,
+  private static instance: JWTService;
+  
+  public static getInstance(): JWTService {
+    if (!JWTService.instance) {
+      JWTService.instance = new JWTService();
+    }
+    return JWTService.instance;
+  }
+  
+  public generateTokens(payload: JWTPayload): { accessToken: string; refreshToken: string } {
+    const accessToken = (jwt as any).sign(payload, config.JWT_SECRET, {
+      expiresIn: config.JWT_EXPIRE,
+      issuer: 'shakthi-gov',
+      audience: 'shakthi-users'
+    });
+    
+    const refreshToken = (jwt as any).sign(
+      { userId: payload.userId, type: 'refresh' },
+      config.JWT_REFRESH_SECRET,
       {
-        expiresIn: jwtConfig.expiresIn as jwt.SignOptions['expiresIn'],
-        algorithm: jwtConfig.algorithm as jwt.SignOptions['algorithm']
+        expiresIn: config.JWT_REFRESH_EXPIRE,
+        issuer: 'shakthi-gov',
+        audience: 'shakthi-users'
       }
     );
+    
+    return { accessToken, refreshToken };
   }
-
-  public generateRefreshToken(payload: Omit<IJwtPayload, 'iat' | 'exp'>): string {
-    return jwt.sign(
-      payload,
-      jwtConfig.refreshSecret as jwt.Secret,
-      {
-        expiresIn: jwtConfig.refreshExpiresIn as jwt.SignOptions['expiresIn'],
-        algorithm: jwtConfig.algorithm as jwt.SignOptions['algorithm']
-      }
-    );
-  }
-
-  public async verifyAccessToken(token: string): Promise<IJwtPayload> {
+  
+  public verifyAccessToken(token: string): JWTPayload {
     try {
-      // Check if token is blacklisted
-      const isBlacklisted = await this.isTokenBlacklisted(token);
-      if (isBlacklisted) {
-        throw new Error('Token is blacklisted');
-      }
-
-      const decoded = jwt.verify(token, jwtConfig.secret, {
-        algorithms: [jwtConfig.algorithm]
-      }) as IJwtPayload;
-
+      const decoded = (jwt as any).verify(token, config.JWT_SECRET, {
+        issuer: 'shakthi-gov',
+        audience: 'shakthi-users'
+      }) as JWTPayload;
+      
       return decoded;
     } catch (error) {
-      throw new Error('Invalid access token');
+      throw new Error('Invalid or expired access token');
     }
   }
-
-  public async verifyRefreshToken(token: string): Promise<IJwtPayload> {
+  
+  public verifyRefreshToken(token: string): { userId: string; type: string } {
     try {
-      const decoded = jwt.verify(token, jwtConfig.refreshSecret, {
-        algorithms: [jwtConfig.algorithm]
-      }) as IJwtPayload;
-
+      const decoded = (jwt as any).verify(token, config.JWT_REFRESH_SECRET, {
+        issuer: 'shakthi-gov',
+        audience: 'shakthi-users'
+      }) as { userId: string; type: string };
+      
+      if (decoded.type !== 'refresh') {
+        throw new Error('Invalid token type');
+      }
+      
       return decoded;
     } catch (error) {
-      throw new Error('Invalid refresh token');
+      throw new Error('Invalid or expired refresh token');
     }
   }
-
-  public async blacklistToken(token: string): Promise<void> {
-    try {
-      const decoded = jwt.decode(token) as IJwtPayload;
-      if (decoded && decoded.exp) {
-        const expiresIn = decoded.exp - Math.floor(Date.now() / 1000);
-        if (expiresIn > 0) {
-          await this.redis.set(
-            `${jwtConfig.tokenBlacklistPrefix}${token}`,
-            'blacklisted',
-            expiresIn
-          );
-        }
-      }
-    } catch (error) {
-      console.error('Error blacklisting token:', error);
-    }
+  
+  public async blacklistToken(token: string, expiryTime?: number): Promise<void> {
+    const key = `blacklist_${token}`;
+    const ttl = expiryTime || 24 * 60 * 60; // 24 hours default
+    
+    await redisClient.set(key, 'true', ttl);
   }
-
+  
   public async isTokenBlacklisted(token: string): Promise<boolean> {
-    try {
-      const exists = await this.redis.exists(`${jwtConfig.tokenBlacklistPrefix}${token}`);
-      return exists === 1;
-    } catch (error) {
-      console.error('Error checking token blacklist:', error);
-      return false;
-    }
+    const key = `blacklist_${token}`;
+    return await redisClient.exists(key);
   }
-
-  public getTokenFromHeader(authHeader: string): string | null {
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return null;
-    }
-    return authHeader.substring(7);
+  
+  public async storeRefreshToken(userId: string, refreshToken: string): Promise<void> {
+    const key = `refresh_${userId}`;
+    const ttl = 7 * 24 * 60 * 60; // 7 days
+    
+    await redisClient.set(key, refreshToken, ttl);
+  }
+  
+  public async removeRefreshToken(userId: string): Promise<void> {
+    const key = `refresh_${userId}`;
+    await redisClient.del(key);
+  }
+  
+  public async validateRefreshToken(userId: string, refreshToken: string): Promise<boolean> {
+    const key = `refresh_${userId}`;
+    const storedToken = await redisClient.get(key);
+    
+    return storedToken === refreshToken;
   }
 }
 
-export const jwtService = new JWTService();
+export const jwtService = JWTService.getInstance();

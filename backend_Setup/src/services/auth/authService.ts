@@ -7,6 +7,7 @@ import { jwtService } from './jwtService';
 import { otpService } from './otpService';
 import { PasswordService } from './passwordService';
 import { UserRole } from '../../types/user';
+import { notificationService } from '../notification/notificationService';
 
 export class AuthService {
   public async register(data: IRegisterRequest): Promise<{ user: any; message: string }> {
@@ -38,13 +39,13 @@ export class AuthService {
     });
 
     // Generate and send OTPs
-    const emailOTP = await otpService.createOTP(user._id.toString(), OTPType.EMAIL_VERIFICATION);
-    const mobileOTP = await otpService.createOTP(user._id.toString(), OTPType.MOBILE_VERIFICATION);
+    const emailOTP = await otpService.generateOTP(user._id.toString(), 'EMAIL_VERIFICATION');
+    const mobileOTP = await otpService.generateOTP(user._id.toString(), 'MOBILE_VERIFICATION');
 
     // Send OTPs (in parallel)
     await Promise.all([
-      otpService.sendEmailOTP(email, emailOTP),
-      otpService.sendSMSOTP(mobile, mobileOTP)
+      this.sendEmailOTP(email, emailOTP),
+      this.sendSMSOTP(mobile, mobileOTP)
     ]);
 
     return {
@@ -163,7 +164,7 @@ export class AuthService {
   }
 
   public async verifyOTP(userId: string, code: string, type: OTPType): Promise<void> {
-    const isValid = await otpService.verifyOTP(userId, code, type);
+    const isValid = await otpService.verifyOTP(userId, type, code);
     if (!isValid) {
       throw new Error('Invalid or expired OTP');
     }
@@ -185,12 +186,12 @@ export class AuthService {
       throw new Error('User not found');
     }
 
-    const otp = await otpService.createOTP(userId, type);
+    const otp = await otpService.generateOTP(userId, type);
 
     if (type === OTPType.EMAIL_VERIFICATION) {
-      await otpService.sendEmailOTP(user.email, otp);
+      await this.sendEmailOTP(user.email, otp);
     } else if (type === OTPType.MOBILE_VERIFICATION) {
-      await otpService.sendSMSOTP(user.mobile, otp);
+      await this.sendSMSOTP(user.mobile, otp);
     }
   }
 
@@ -208,8 +209,8 @@ export class AuthService {
       return;
     }
 
-    const otp = await otpService.createOTP(user._id.toString(), OTPType.PASSWORD_RESET);
-    await otpService.sendEmailOTP(user.email, otp);
+    const otp = await otpService.generateOTP(user._id.toString(), 'PASSWORD_RESET');
+    await this.sendEmailOTP(user.email, otp);
   }
 
   public async resetPassword(identifier: string, otp: string, newPassword: string): Promise<void> {
@@ -226,7 +227,7 @@ export class AuthService {
     }
 
     // Verify OTP
-    const isValidOTP = await otpService.verifyOTP(user._id.toString(), otp, OTPType.PASSWORD_RESET);
+    const isValidOTP = await otpService.verifyOTP(user._id.toString(), 'PASSWORD_RESET', otp);
     if (!isValidOTP) {
       throw new Error('Invalid or expired OTP');
     }
@@ -246,5 +247,45 @@ export class AuthService {
       { userId: user._id },
       { isRevoked: true }
     );
+  }
+
+  private async sendEmailOTP(email: string, otp: string): Promise<void> {
+    // Create a temporary notification for OTP email
+    const notification = {
+      userId: 'temp',
+      userType: 'citizen' as const,
+      type: 'email' as const,
+      channel: email,
+      priority: 'high' as const,
+      category: 'system' as const,
+      subject: 'OTP Verification Code',
+      message: `<h2>Your OTP Verification Code</h2>
+                <p>Your verification code is: <strong>${otp}</strong></p>
+                <p>This code will expire in 10 minutes.</p>
+                <p>If you did not request this code, please ignore this email.</p>`,
+      status: 'pending' as const,
+      metadata: { source: 'auth_service' }
+    };
+
+    await notificationService.scheduleNotification(notification);
+    await notificationService.processNotificationQueue();
+  }
+
+  private async sendSMSOTP(mobile: string, otp: string): Promise<void> {
+    // Create a temporary notification for OTP SMS
+    const notification = {
+      userId: 'temp',
+      userType: 'citizen' as const,
+      type: 'sms' as const,
+      channel: mobile,
+      priority: 'high' as const,
+      category: 'system' as const,
+      message: `Your verification code is: ${otp}. This code will expire in 10 minutes.`,
+      status: 'pending' as const,
+      metadata: { source: 'auth_service' }
+    };
+
+    await notificationService.scheduleNotification(notification);
+    await notificationService.processNotificationQueue();
   }
 }

@@ -1,121 +1,84 @@
+import { redisClient } from '../../config/redis';
 import * as crypto from 'crypto';
-import * as nodemailer from 'nodemailer';
-import Twilio from 'twilio';
-import { config } from '../../config/environment';
-import { OTP } from '../../models/OTP';
-import { OTPType } from '../../types/auth';
 
 export class OTPService {
-  private emailTransporter: nodemailer.Transporter;
-  private twilioClient: Twilio.Twilio;
-
-  constructor() {
-    // Email transporter
-    this.emailTransporter = nodemailer.createTransport({
-      host: config.email.host,
-      port: config.email.port,
-      secure: false,
-      auth: {
-        user: config.email.user,
-        pass: config.email.pass
-      }
-    });
-
-    // SMS client
-    if (config.sms.accountSid && config.sms.authToken) {
-      this.twilioClient = Twilio(config.sms.accountSid, config.sms.authToken);
+  private static instance: OTPService;
+  
+  public static getInstance(): OTPService {
+    if (!OTPService.instance) {
+      OTPService.instance = new OTPService();
     }
+    return OTPService.instance;
   }
-
-  public generateOTP(): string {
-    const digits = '0123456789';
-    let otp = '';
-    for (let i = 0; i < config.otp.length; i++) {
-      otp += digits[crypto.randomInt(0, digits.length)];
-    }
+  
+  public async generateOTP(identifier: string, purpose: string): Promise<string> {
+    // Generate 6-digit OTP
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    
+    // Store OTP in Redis with 10-minute expiry
+    const key = `otp_${purpose}_${identifier}`;
+    const data = JSON.stringify({
+      otp,
+      attempts: 0,
+      generatedAt: new Date().toISOString()
+    });
+    
+    await redisClient.set(key, data, 600); // 10 minutes
+    
     return otp;
   }
-
-  public async createOTP(userId: string, type: OTPType): Promise<string> {
-    // Remove any existing unused OTP for this user and type
-    await OTP.deleteMany({ userId, type, isUsed: false });
-
-    const code = this.generateOTP();
-    const expiresAt = new Date(Date.now() + config.otp.expiresIn);
-
-    await OTP.create({
-      userId,
-      code,
-      type,
-      expiresAt
-    });
-
-    return code;
-  }
-
-  public async verifyOTP(userId: string, code: string, type: OTPType): Promise<boolean> {
-    const otpDoc = await OTP.findOne({
-      userId,
-      code,
-      type,
-      isUsed: false,
-      expiresAt: { $gt: new Date() }
-    }) as OTPType & { isUsed: boolean; save: () => Promise<void> };
-
-    if (!otpDoc) {
+  
+  public async verifyOTP(identifier: string, purpose: string, otp: string): Promise<boolean> {
+    const key = `otp_${purpose}_${identifier}`;
+    const storedData = await redisClient.get(key);
+    
+    if (!storedData) {
+      return false; // OTP expired or doesn't exist
+    }
+    
+    const { otp: storedOTP, attempts } = JSON.parse(storedData);
+    
+    // Check if too many attempts
+    if (attempts >= 3) {
+      await redisClient.del(key); // Remove OTP after too many attempts
       return false;
     }
-
-    // Mark OTP as used
-    otpDoc.isUsed = true;
-    await otpDoc.save();
-
-    return true;
-  }
-
-  public async sendEmailOTP(email: string, otp: string): Promise<void> {
-    const mailOptions = {
-      from: config.email.user,
-      to: email,
-      subject: 'Email Verification Code',
-      html: `
-        <div style="max-width: 600px; margin: 0 auto; padding: 20px; font-family: Arial, sans-serif;">
-          <h2>Email Verification</h2>
-          <p>Your verification code is:</p>
-          <div style="background: #f5f5f5; padding: 20px; text-align: center; font-size: 24px; font-weight: bold; letter-spacing: 5px; margin: 20px 0;">
-            ${otp}
-          </div>
-          <p>This code will expire in 5 minutes.</p>
-          <p>If you didn't request this code, please ignore this email.</p>
-        </div>
-      `
-    };
-
-    await this.emailTransporter.sendMail(mailOptions);
-  }
-
-  public async sendSMSOTP(mobile: string, otp: string): Promise<void> {
-    if (!this.twilioClient) {
-      throw new Error('SMS service not configured');
+    
+    if (storedOTP === otp) {
+      await redisClient.del(key); // Remove OTP after successful verification
+      return true;
+    } else {
+      // Increment attempts
+      const updatedData = JSON.stringify({
+        otp: storedOTP,
+        attempts: attempts + 1,
+        generatedAt: JSON.parse(storedData).generatedAt
+      });
+      await redisClient.set(key, updatedData, 600);
+      return false;
     }
-
-    const message = `Your verification code is: ${otp}. This code will expire in 5 minutes.`;
-
-    await this.twilioClient.messages.create({
-      body: message,
-      from: config.sms.phoneNumber,
-      to: mobile
-    });
   }
-
-  public async cleanupExpiredOTPs(): Promise<void> {
-    await OTP.deleteMany({
-      $or: [
-        { expiresAt: { $lt: new Date() } },
-        { isUsed: true }
-      ]
-    });
+  
+  public async generateSecureToken(length: number = 32): Promise<string> {
+    return crypto.randomBytes(length).toString('hex');
+  }
+  
+  public async storeSecureToken(identifier: string, token: string, ttlSeconds: number = 3600): Promise<void> {
+    const key = `secure_token_${identifier}`;
+    await redisClient.set(key, token, ttlSeconds);
+  }
+  
+  public async verifySecureToken(identifier: string, token: string): Promise<boolean> {
+    const key = `secure_token_${identifier}`;
+    const storedToken = await redisClient.get(key);
+    
+    if (storedToken === token) {
+      await redisClient.del(key); // Remove token after use
+      return true;
+    }
+    
+    return false;
   }
 }
 
-export const otpService = new OTPService();
+export const otpService = OTPService.getInstance();
