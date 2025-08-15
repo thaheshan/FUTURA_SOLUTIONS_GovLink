@@ -1,0 +1,12 @@
+frontend:
+  build:
+    context: ./frontend
+    dockerfile: Dockerfile
+  container_name: sri_gov_frontend
+  restart: unless-stopped
+  volumes:
+    - ./frontend:/app
+  ports:
+    - "19001:80"
+  networks:
+    - gov-network
