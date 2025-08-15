@@ -56,12 +56,12 @@ services:
       NODE_ENV: ${NODE_ENV:-development}
       MONGO_HOST: mongodb
       MONGO_PORT: 27017
-      MONGO_DATABASE: ${MONGO_DATABASE}
-      MONGO_USERNAME: ${MONGO_USERNAME}
-      MONGO_PASSWORD: ${MONGO_PASSWORD}
+      MONGO_DATABASE: ${MONGO_DATABASE:-gov_db}
+      MONGO_USERNAME: ${MONGO_USERNAME:-root}
+      MONGO_PASSWORD: ${MONGO_PASSWORD:-password}
       REDIS_HOST: redis
       REDIS_PORT: 6379
-      JWT_SECRET: ${JWT_SECRET}
+      JWT_SECRET: ${JWT_SECRET:-supersecret}
       API_PORT: ${API_PORT:-5000}
       BCRYPT_ROUNDS: ${BCRYPT_ROUNDS:-10}
       RATE_LIMIT_WINDOW: ${RATE_LIMIT_WINDOW:-60000}
@@ -90,11 +90,13 @@ services:
       - ./Shared:/app/node_modules/@srilanka-gov/shared
       - ./logs/frontend:/app/logs
     environment:
-      REACT_APP_API_URL: ${REACT_APP_API_URL:-http://localhost:5000}
-      REACT_APP_WEBSOCKET_URL: ${REACT_APP_WEBSOCKET_URL:-ws://localhost:5000}
+      REACT_APP_API_URL: ${REACT_APP_API_URL:-http://backend:5000}
+      REACT_APP_WEBSOCKET_URL: ${REACT_APP_WEBSOCKET_URL:-ws://backend:5000}
       REACT_APP_APP_NAME: ${REACT_APP_APP_NAME:-GovLinkApp}
     ports:
       - "${WEB_PORT:-3000}:3000"
+    depends_on:
+      - backend
     networks:
       - gov-network
 
@@ -109,14 +111,16 @@ services:
       - ./user-mobile:/app
       - ./Shared:/app/node_modules/@srilanka-gov/shared
     environment:
-      - EXPO_DEVTOOLS_LISTEN_ADDRESS=0.0.0.0
-      - REACT_NATIVE_PACKAGER_HOSTNAME=host.docker.internal
+      EXPO_DEVTOOLS_LISTEN_ADDRESS: 0.0.0.0
+      REACT_NATIVE_PACKAGER_HOSTNAME: host.docker.internal
     ports:
-      - "19000:19000"  # Expo Dev Server
-      - "19001:19001"  # Metro Bundler Web
-      - "19002:19002"  # Expo Web
-      - "19006:19006"  # Expo Tunnel
+      - "19000:19000"
+      - "19001:19001"
+      - "19002:19002"
+      - "19006:19006"
     command: npx expo start --tunnel
+    depends_on:
+      - backend
     networks:
       - gov-network
 
@@ -148,3 +152,5 @@ networks:
 volumes:
   mongodb_data:
   redis_data:
+
+

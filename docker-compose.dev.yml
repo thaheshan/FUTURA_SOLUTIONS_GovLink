@@ -1,28 +1,75 @@
-version: '3.8'
-
 services:
   backend:
+    container_name: sri_gov_backend
+    build:
+      context: ./backend_Setup
+      dockerfile: Dockerfile
     environment:
       - NODE_ENV=development
+      - API_PORT=8000
     volumes:
-      - ./user_backend:/app
+      - ./backend_Setup:/app
       - ./shared:/app/node_modules/@srilanka-gov/shared
     command: npm run dev
     ports:
-      - "${API_PORT}:${API_PORT}"
-      - "9229:9229"  # Node.js debug port
+      - "8000:8000"
+      - "9229:9229" # Node.js debug port
+    networks:
+      - gov-network
+    restart: unless-stopped
 
   frontend:
+    container_name: sri_gov_frontend
+    build:
+      context: ./user-web
+      dockerfile: Dockerfile
     environment:
       - NODE_ENV=development
+      - WEB_PORT=3000
     volumes:
-      - ./user_web:/app
+      - ./user-web:/app
       - ./shared:/app/node_modules/@srilanka-gov/shared
     command: npm start
     ports:
-      - "${WEB_PORT}:3000"
-      - "19000:19000"  # React Native debug port
+      - "3000:3000" # React web frontend
+    networks:
+      - gov-network
+    restart: unless-stopped
+
+  mobile:
+    container_name: sri_gov_mobile
+    build:
+      context: ./user-mobile
+      dockerfile: Dockerfile
+    environment:
+      - NODE_ENV=development
+    volumes:
+      - ./user-mobile:/app
+      - /app/node_modules
+      - ./shared:/app/node_modules/@srilanka-gov/shared
+    command: npm start
+    ports:
+      - "19000:19000" # React Native debug port
+      - "19002:19002" # Expo DevTools
+    networks:
+      - gov-network
+    restart: unless-stopped
 
   nginx:
+    container_name: sri_gov_nginx
+    image: nginx:1.23-alpine
     ports:
       - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/conf.d:/etc/nginx/conf.d
+      - ./user-web/build:/usr/share/nginx/html
+    networks:
+      - gov-network
+    restart: unless-stopped
+
+networks:
+  gov-network:
+    driver: bridge
+
+
