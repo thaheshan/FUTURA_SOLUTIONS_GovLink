@@ -1,3 +1,0 @@
-dist/
-migrate.js
-migrations/**/*.js
