@@ -1,7 +1,7 @@
 import { User } from '../../models/User';
 // import { RefreshToken } from '../../models/RefreshToken';
 
-import { RefreshToken } from '../../models/RefreshToken';
+import { RefreshToken } from '../../models/refresh';
 import { IRegisterRequest, ILoginRequest, IAuthResponse, OTPType } from '../../types/auth';
 import { jwtService } from './jwtService';
 import { otpService } from './otpService';
