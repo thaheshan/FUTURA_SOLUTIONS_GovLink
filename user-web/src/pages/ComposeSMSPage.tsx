@@ -80,6 +80,17 @@ const ComposeSMSPage: React.FC<ComposeSMSPageProps> = ({ onNavigate }) => {
           <p className="text-gray-600 text-sm">Initiate a new conversation with citizens or other officers.</p>
         </div>
 
+        {/* Breadcrumb */}
+        <div className="mb-6">
+          <nav className="text-sm text-gray-500">
+            <button onClick={() => onNavigate?.("communication")} className="hover:text-gray-700">
+              Communication
+            </button>
+            <span className="mx-2">/</span>
+            <span className="text-gray-800">Compose New Message</span>
+          </nav>
+        </div>
+
         {/* Form */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
           <div className="space-y-6">

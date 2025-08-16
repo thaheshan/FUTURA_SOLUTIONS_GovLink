@@ -1,24 +1,3 @@
-// // src/App.tsx
-// import React from "react";
-// import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
-// import DashboardPage from "./pages/DashboardPage";
-// import LoginPage from "./pages/auth/LoginPage";
-
-// const App: React.FC = () => {
-//   return (
-//     <Router>
-//       <Routes>
-//         <Route path="/" element={<LoginPage />} />
-//         <Route path="/dashboard" element={<DashboardPage />} />
-//       </Routes>
-//     </Router>
-//   );
-// };
-
-// export default App;
-
-
-
 "use client"
 
 import type React from "react"
@@ -27,7 +6,9 @@ import { BrowserRouter as Router } from "react-router-dom"
 import Layout from "./components/layout/Layout"
 import Body from "./components/Body"
 import ApplicationsPage from "./pages/ApplicationsPage"
+import ApplicationDetailsPage from "./pages/ApplicationDetailsPage"
 import CommunicationPage from "./pages/CommunicationPage"
+import ChatPage from "./pages/ChatPage"
 import CalendarPage from "./pages/CalendarPage"
 import ReportsPage from "./pages/ReportsPage"
 import SettingsPage from "./pages/SettingsPage"
@@ -38,6 +19,7 @@ import AuthContainer from "./pages/auth/AuthContainer"
 const App: React.FC = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [activeRoute, setActiveRoute] = useState("dashboard")
+  const [routeData, setRouteData] = useState<any>(null)
 
   const handleLoginSuccess = () => {
     setIsAuthenticated(true)
@@ -46,10 +28,12 @@ const App: React.FC = () => {
   const handleLogout = () => {
     setIsAuthenticated(false)
     setActiveRoute("dashboard")
+    setRouteData(null)
   }
 
-  const handleNavigate = (route: string) => {
+  const handleNavigate = (route: string, data?: any) => {
     setActiveRoute(route)
+    setRouteData(data)
   }
 
   const renderCurrentPage = () => {
@@ -57,9 +41,15 @@ const App: React.FC = () => {
       case "dashboard":
         return <Body onNavigate={handleNavigate} />
       case "applications":
-        return <ApplicationsPage />
+        return <ApplicationsPage onNavigate={handleNavigate} />
+      case "application-details":
+        return <ApplicationDetailsPage onNavigate={handleNavigate} applicationData={routeData?.applicationData} />
       case "communication":
         return <CommunicationPage onNavigate={handleNavigate} />
+      case "chat":
+        return (
+          <ChatPage onNavigate={handleNavigate} citizenId={routeData?.citizenId} citizenName={routeData?.citizenName} />
+        )
       case "compose-email":
         return <ComposeEmailPage onNavigate={handleNavigate} />
       case "compose-sms":
