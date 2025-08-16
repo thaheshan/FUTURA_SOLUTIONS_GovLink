@@ -120,7 +120,16 @@ const ServicesScreen: React.FC<ServicesScreenProps> = ({ navigation }) => {
   const handleDivisionPress = (divisionId: string) => {
     // Navigate to specific division detail screen
     console.log(`Navigate to division: ${divisionId}`);
-    // navigation.navigate('DivisionDetail', { divisionId });
+    
+    // Check if it's the registrar division and navigate to NIC Services
+    if (divisionId === 'registrar') {
+      navigation.navigate('NICServices');
+    } else {
+      // For other divisions, you can navigate to a coming soon screen or division detail
+      navigation.navigate('ComingSoon');
+      // Uncomment below line when you have division detail screens
+      // navigation.navigate('DivisionDetail', { divisionId });
+    }
   };
 
   const handleBackPress = () => {
@@ -179,7 +188,7 @@ const ServicesScreen: React.FC<ServicesScreenProps> = ({ navigation }) => {
             style={styles.backButton}
             onPress={handleBackPress}
           >
-            
+            <Text style={styles.backIcon}>←</Text>
           </TouchableOpacity>
           <View style={styles.headerTitleContainer}>
             <Text style={styles.headerTitle}>Services</Text>
