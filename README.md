@@ -571,14 +571,6 @@ This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) 
 
 ---
 
-## 📞 Support & Contact
-
-- **📧 Email**: contact@futura-solutions.lk
-- **🌐 Website**: [www.futura-solutions.lk](https://www.futura-solutions.lk)
-- **💬 Discord**: [Join our community](https://discord.gg/futura-solutions)
-- **📱 WhatsApp**: +94 70 123 4567
-
----
 
 > **FUTURA SOLUTIONS**  
 > *Building the future of Sri Lankan digital governance.*  
