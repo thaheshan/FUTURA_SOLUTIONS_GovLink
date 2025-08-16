@@ -90,7 +90,7 @@ import type React from "react"
 import { useState } from "react"
 
 interface BodyProps {
-  onNavigate?: (route: string) => void
+  onNavigate?: (route: string, params?: any) => void
 }
 
 const Body: React.FC<BodyProps> = ({ onNavigate }) => {
@@ -228,7 +228,26 @@ const Body: React.FC<BodyProps> = ({ onNavigate }) => {
                       </span>
                     </td>
                     <td className="py-3 px-4">
-                      <button className="text-blue-600 hover:text-blue-700 text-sm font-medium">View</button>
+                      <button
+                        onClick={() =>
+                          onNavigate?.("application-details", {
+                            applicationData: {
+                              ref: app.id,
+                              citizenName: app.name,
+                              serviceType: app.service,
+                              dateReceived: app.date,
+                              currentStatus: app.status,
+                              slaDate: "2024-03-15",
+                              citizenId: "123456789V",
+                              contactNumber: "+94 77 123 4567",
+                              address: "123 Main Street, Colombo",
+                            },
+                          })
+                        }
+                        className="text-blue-600 hover:text-blue-700 text-sm font-medium"
+                      >
+                        View Details
+                      </button>
                     </td>
                   </tr>
                 ))}
@@ -241,7 +260,18 @@ const Body: React.FC<BodyProps> = ({ onNavigate }) => {
         return (
           <div className="space-y-4">
             {recentCommunications.map((comm) => (
-              <div key={comm.id} className="flex items-start space-x-4 p-4 hover:bg-gray-50 rounded-lg">
+              <div
+                key={comm.id}
+                className={`flex items-start space-x-4 p-4 hover:bg-gray-50 rounded-lg ${comm.type === "SMS" ? "cursor-pointer" : ""}`}
+                onClick={() => {
+                  if (comm.type === "SMS") {
+                    onNavigate?.("chat", {
+                      citizenName: comm.recipient,
+                      citizenId: "123456789V",
+                    })
+                  }
+                }}
+              >
                 <div className="flex-shrink-0">
                   <i className={`${comm.icon} text-gray-400 text-lg`}></i>
                 </div>
@@ -264,6 +294,7 @@ const Body: React.FC<BodyProps> = ({ onNavigate }) => {
                   </div>
                   <p className="text-sm text-gray-600 mb-1">{comm.subject}</p>
                   <p className="text-xs text-gray-500">{comm.content}</p>
+                  {comm.type === "SMS" && <p className="text-xs text-blue-600 mt-1">Click to open chat</p>}
                 </div>
               </div>
             ))}

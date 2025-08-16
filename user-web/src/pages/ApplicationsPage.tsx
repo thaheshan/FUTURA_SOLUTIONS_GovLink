@@ -4,7 +4,11 @@
 import type React from "react"
 import { useState } from "react"
 
-const ApplicationsPage: React.FC = () => {
+interface ApplicationsPageProps {
+  onNavigate?: (route: string, data?: any) => void
+}
+
+const ApplicationsPage: React.FC<ApplicationsPageProps> = ({ onNavigate }) => {
   const [searchTerm, setSearchTerm] = useState("")
   const [serviceType, setServiceType] = useState("")
   const [status, setStatus] = useState("")
@@ -19,7 +23,13 @@ const ApplicationsPage: React.FC = () => {
       dateReceived: "2024-01-15",
       currentStatus: "Pending Review",
       slaDate: "2024-02-15",
-      actions: ["View Details", "Update Status", "Communicate", "Add Notes"],
+      contactNumber: "+94 77 123 4567",
+      address: "123 Main Street, Colombo",
+      applicationDetails: {
+        fullName: "Anika Silva",
+        dateOfBirth: "1992-03-15",
+        gender: "Female",
+      },
     },
     {
       ref: "REF-2024-002",
@@ -29,7 +39,13 @@ const ApplicationsPage: React.FC = () => {
       dateReceived: "2024-01-20",
       currentStatus: "In Progress",
       slaDate: "2024-02-20",
-      actions: ["View Details", "Update Status", "Communicate", "Add Notes"],
+      contactNumber: "+94 77 234 5678",
+      address: "456 Park Avenue, Kandy",
+      applicationDetails: {
+        fullName: "Rohan Perera",
+        dateOfBirth: "1988-05-12",
+        gender: "Male",
+      },
     },
     {
       ref: "REF-2024-003",
@@ -39,7 +55,13 @@ const ApplicationsPage: React.FC = () => {
       dateReceived: "2024-01-25",
       currentStatus: "Approved",
       slaDate: "2024-02-25",
-      actions: ["View Details", "Update Status", "Communicate", "Add Notes"],
+      contactNumber: "+94 77 345 6789",
+      address: "789 Lake Road, Galle",
+      applicationDetails: {
+        fullName: "Chamari Fernando",
+        dateOfBirth: "1995-06-20",
+        gender: "Female",
+      },
     },
     {
       ref: "REF-2024-004",
@@ -49,7 +71,13 @@ const ApplicationsPage: React.FC = () => {
       dateReceived: "2024-01-30",
       currentStatus: "Pending Review",
       slaDate: "2024-03-01",
-      actions: ["View Details", "Update Status", "Communicate", "Add Notes"],
+      contactNumber: "+94 77 456 7890",
+      address: "321 Hill Street, Matara",
+      applicationDetails: {
+        fullName: "Arjun De Silva",
+        dateOfBirth: "1990-12-10",
+        gender: "Male",
+      },
     },
     {
       ref: "REF-2024-005",
@@ -59,7 +87,13 @@ const ApplicationsPage: React.FC = () => {
       dateReceived: "2024-02-05",
       currentStatus: "In Progress",
       slaDate: "2024-03-05",
-      actions: ["View Details", "Update Status", "Communicate", "Add Notes"],
+      contactNumber: "+94 77 567 8901",
+      address: "654 Beach Road, Negombo",
+      applicationDetails: {
+        fullName: "Nadeesha Rajapaksa",
+        dateOfBirth: "1985-04-25",
+        gender: "Female",
+      },
     },
   ]
 
@@ -75,6 +109,30 @@ const ApplicationsPage: React.FC = () => {
         return "bg-gray-100 text-gray-800"
     }
   }
+
+  const handleViewDetails = (application: any) => {
+    onNavigate?.("application-details", { applicationData: application })
+  }
+
+  const handleCommunicate = (application: any) => {
+    onNavigate?.("chat", {
+      citizenId: application.citizenId,
+      citizenName: application.citizenName,
+      applicationRef: application.ref,
+    })
+  }
+
+  const filteredApplications = applications.filter((app) => {
+    const matchesSearch =
+      app.ref.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      app.citizenName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      app.serviceType.toLowerCase().includes(searchTerm.toLowerCase())
+
+    const matchesServiceType = !serviceType || app.serviceType.toLowerCase().includes(serviceType.toLowerCase())
+    const matchesStatus = !status || app.currentStatus.toLowerCase().includes(status.toLowerCase())
+
+    return matchesSearch && matchesServiceType && matchesStatus
+  })
 
   return (
     <div className="p-6">
@@ -153,7 +211,7 @@ const ApplicationsPage: React.FC = () => {
                 </tr>
               </thead>
               <tbody>
-                {applications.map((app, index) => (
+                {filteredApplications.map((app, index) => (
                   <tr key={index} className="border-b border-gray-100 hover:bg-gray-50">
                     <td className="py-4 px-6 text-sm font-medium text-gray-900">{app.ref}</td>
                     <td className="py-4 px-6">
@@ -174,13 +232,21 @@ const ApplicationsPage: React.FC = () => {
                     <td className="py-4 px-6 text-sm text-gray-700">{app.slaDate}</td>
                     <td className="py-4 px-6">
                       <div className="flex space-x-2">
-                        <button className="text-blue-600 hover:text-blue-700 text-sm font-medium">View Details</button>
+                        <button
+                          onClick={() => handleViewDetails(app)}
+                          className="text-blue-600 hover:text-blue-700 text-sm font-medium"
+                        >
+                          View Details
+                        </button>
                         <span className="text-gray-300">|</span>
                         <button className="text-green-600 hover:text-green-700 text-sm font-medium">
                           Update Status
                         </button>
                         <span className="text-gray-300">|</span>
-                        <button className="text-purple-600 hover:text-purple-700 text-sm font-medium">
+                        <button
+                          onClick={() => handleCommunicate(app)}
+                          className="text-purple-600 hover:text-purple-700 text-sm font-medium"
+                        >
                           Communicate
                         </button>
                       </div>

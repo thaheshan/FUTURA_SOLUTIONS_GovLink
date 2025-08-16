@@ -59,6 +59,17 @@ const ComposeEmailPage: React.FC<ComposeEmailPageProps> = ({ onNavigate }) => {
           </nav>
         </div>
 
+        {/* Additional Breadcrumb */}
+        <div className="mb-6">
+          <nav className="text-sm text-gray-500">
+            <button onClick={() => onNavigate?.("communication")} className="hover:text-gray-700">
+              Communication
+            </button>
+            <span className="mx-2">/</span>
+            <span className="text-gray-800">Compose Email</span>
+          </nav>
+        </div>
+
         {/* Header */}
         <div className="mb-6">
           <h1 className="text-2xl font-semibold text-gray-800">Compose Email</h1>
