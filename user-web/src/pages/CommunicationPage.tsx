@@ -73,16 +73,6 @@ const CommunicationPage: React.FC<CommunicationPageProps> = ({ onNavigate }) => 
     return matchesTab && matchesSearch
   })
 
-  const handleComposeClick = () => {
-    if (activeTab === "Email") {
-      onNavigate?.("compose-email")
-    } else if (activeTab === "SMS") {
-      onNavigate?.("compose-sms")
-    } else {
-      onNavigate?.("compose-email") // Default to email
-    }
-  }
-
   const handleCommunicationClick = (comm: any) => {
     if (comm.type === "SMS") {
       // Navigate to chat for SMS communications
@@ -91,12 +81,6 @@ const CommunicationPage: React.FC<CommunicationPageProps> = ({ onNavigate }) => 
         citizenName: comm.recipient,
       })
     }
-  }
-
-  const getComposeButtonText = () => {
-    if (activeTab === "Email") return "+ Compose New Email"
-    if (activeTab === "SMS") return "+ Compose New Message"
-    return "+ Compose New Message"
   }
 
   return (
@@ -192,15 +176,33 @@ const CommunicationPage: React.FC<CommunicationPageProps> = ({ onNavigate }) => 
           </div>
         </div>
 
-        {/* ChatBox Button */}
+        {/* Compose Button - Changes based on active tab */}
         <div className="fixed bottom-6 right-6">
-          <button
-            onClick={() => onNavigate?.("chat", { citizenName: "New Conversation" })}
-            className="bg-gray-800 hover:bg-gray-900 text-white px-6 py-3 rounded-lg shadow-lg flex items-center space-x-2 transition-colors"
-          >
-            <i className="fas fa-comments mr-2"></i>
-            <span>ChatBox</span>
-          </button>
+          {activeTab === "All" ? (
+            <button
+              onClick={() => onNavigate?.("chat", { citizenName: "New Conversation" })}
+              className="bg-blue-700 hover:bg-gray-800 text-white px-6 py-3 rounded-lg shadow-lg flex items-center space-x-2 transition-colors"
+            >
+              <i className="fas fa-comments mr-2"></i>
+              <span>ChatBox</span>
+            </button>
+          ) : activeTab === "Email" ? (
+            <button
+              onClick={() => onNavigate?.("compose-email")}
+              className="bg-blue-700 hover:bg-gray-800 text-white px-6 py-3 rounded-lg shadow-lg flex items-center space-x-2 transition-colors"
+            >
+              <i className="fas fa-envelope mr-2"></i>
+              <span>Compose Email</span>
+            </button>
+          ) : activeTab === "SMS" ? (
+            <button
+              onClick={() => onNavigate?.("compose-sms")}
+              className="bg-blue-700 hover:bg-gray-800 text-white px-6 py-3 rounded-lg shadow-lg flex items-center space-x-2 transition-colors"
+            >
+              <i className="fas fa-sms mr-2"></i>
+              <span>Compose New Message</span>
+            </button>
+          ) : null}
         </div>
       </div>
     </div>

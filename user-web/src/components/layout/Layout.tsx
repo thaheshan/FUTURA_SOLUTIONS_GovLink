@@ -29,7 +29,6 @@
 // export default Layout;
 
 
-
 "use client"
 
 // src/components/layout/Layout.tsx
@@ -113,4 +112,3 @@ const Layout: React.FC<LayoutProps> = ({ children, activeRoute, onNavigate, onLo
 }
 
 export default Layout
-
