@@ -418,7 +418,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
   };
 
   const handleTrackStatus = () => {
-    navigation.navigate('ComingSoon');
+    navigation.navigate('TrackRequests');
   };
 
   const handleFindOffice = () => {
@@ -548,23 +548,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
       <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
       
       <SafeAreaView style={styles.safeArea}>
-        {/* Enhanced Status Bar */}
-        <View style={styles.statusBar}>
-          <Text style={styles.timeText}>9:41</Text>
-          <View style={styles.statusIcons}>
-            <View style={styles.signalBars}>
-              {[4, 6, 8, 10].map((height, index) => (
-                <View key={index} style={[styles.signalBar, { height }]} />
-              ))}
-            </View>
-            <View style={styles.wifiIcon}>
-              <Text>📶</Text>
-            </View>
-            <View style={styles.batteryContainer}>
-              <View style={styles.batteryLevel} />
-            </View>
-          </View>
-        </View>
+    
 
         {/* Enhanced Header */}
         <View style={styles.header}>
