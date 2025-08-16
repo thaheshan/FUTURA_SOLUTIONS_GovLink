@@ -2,15 +2,21 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { servicesApi } from '../../Services/API/ServiceAPI';
+import type { 
+  ApiResponse, 
+  NICApplicationResponse, 
+  ApplicationStatus, 
+  DocumentUpload, 
+  PaymentDetails,
+  NotificationPreferences,
+  ServiceStats
+} from '../../Services/API/ServiceAPI';
 
-// Types
+// --- Enhanced Types ---
 export interface Service {
   id: string;
   name: string;
-  nameTranslations: {
-    si: string;
-    ta: string;
-  };
+  nameTranslations: { si: string; ta: string };
   category: 'registry' | 'certificates' | 'permits' | 'welfare' | 'land' | 'other';
   isActive: boolean;
   description: string;
@@ -21,6 +27,9 @@ export interface Service {
   requirements?: string[];
   isOnline: boolean;
   comingSoon?: boolean;
+  popularity?: number;
+  rating?: number;
+  totalApplications?: number;
 }
 
 export interface ServiceCategory {
@@ -28,12 +37,14 @@ export interface ServiceCategory {
   name: string;
   icon: string;
   color: string;
+  serviceCount?: number;
 }
 
 export interface District {
   id: number;
   name: string;
   province: string;
+  serviceCount?: number;
 }
 
 export interface ServiceRequirement {
@@ -42,6 +53,8 @@ export interface ServiceRequirement {
   description: string;
   isOptional: boolean;
   documentTypes: string[];
+  validationRules?: any;
+  examples?: string[];
 }
 
 export interface ServiceFee {
@@ -50,6 +63,7 @@ export interface ServiceFee {
   currency: string;
   description: string;
   processingTime: string;
+  additionalCharges?: { name: string; amount: number }[];
 }
 
 export interface SearchFilters {
@@ -57,635 +71,720 @@ export interface SearchFilters {
   category: string | null;
   type: string | null;
   fee: string | null;
+  rating?: number | null;
+  popularity?: 'high' | 'medium' | 'low' | null;
 }
 
-// Add TrackingFilters interface
 export interface TrackingFilters {
-  status: 'all' | 'pending' | 'completed' | 'rejected';
-  dateRange: {
-    start: string;
-    end: string;
-  };
+  status: 'all' | 'pending' | 'processing' | 'completed' | 'rejected' | 'cancelled';
+  dateRange: { start: string; end: string };
   serviceType: string | null;
+  sortBy?: 'date' | 'status' | 'service';
+  sortOrder?: 'asc' | 'desc';
 }
 
 export interface SearchResult {
   results: Service[];
   query: string;
   totalResults: number;
+  filters?: SearchFilters;
+  suggestions?: string[];
 }
 
+export interface NICApplicationData {
+  fullName: string;
+  dateOfBirth: string;
+  nicNumber?: string;
+  fathersName: string;
+  mothersName: string;
+  previousAddress?: string;
+  policeReportNumber?: string;
+  currentAddress: string;
+  maritalStatus?: string;
+  nameChange?: string;
+  contactNumber: string;
+  applicationType?: string;
+  documents: DocumentUpload[];
+  emergencyContact?: {
+    name: string;
+    relationship: string;
+    phone: string;
+  };
+  preferredLanguage?: 'en' | 'si' | 'ta';
+  notificationPreferences?: NotificationPreferences;
+}
+
+export interface UserApplication {
+  referenceNumber: string;
+  serviceId: string;
+  serviceName: string;
+  status: ApplicationStatus['status'];
+  submittedAt: string;
+  lastUpdated: string;
+  estimatedCompletionDate?: string;
+  currentStage: string;
+  progress: number;
+  canCancel: boolean;
+  canUpdate: boolean;
+  requiresAction: boolean;
+}
+
+export interface ServiceCenter {
+  id: string;
+  name: string;
+  address: string;
+  district: string;
+  province: string;
+  contactNumber: string;
+  email?: string;
+  workingHours: string;
+  services: string[];
+  coordinates?: { lat: number; lng: number };
+  rating?: number;
+  reviews?: number;
+}
+
+export interface Notification {
+  id: string;
+  title: string;
+  message: string;
+  type: 'info' | 'success' | 'warning' | 'error';
+  read: boolean;
+  createdAt: string;
+  actionUrl?: string;
+  applicationRef?: string;
+}
+
+// --- Enhanced State Interface ---
 export interface ServicesState {
-  // Services data
+  // Services Data
   services: Service[];
   featuredServices: Service[];
   popularServices: Service[];
   recentlyUsed: string[];
-  
-  // Current service details
   currentService: Service | null;
   serviceRequirements: Record<string, ServiceRequirement[]>;
   serviceFees: Record<string, ServiceFee[]>;
+  serviceCenters: ServiceCenter[];
   
-  // Search
+  // Search & Filters
   searchResults: Service[];
   searchQuery: string;
   searchFilters: SearchFilters;
-
-  // Tracking filters
   trackingFilters: TrackingFilters;
+  searchSuggestions: string[];
   
-  // Categories
+  // Categories & Locations
   categories: ServiceCategory[];
-  
-  // Districts (Sri Lankan districts)
   districts: District[];
   
-  // Available services (11 GS/DS services)
-  availableServices: Service[];
+  // Applications
+  userApplications: UserApplication[];
+  currentApplication: NICApplicationData | null;
+  applicationStatus: Record<string, ApplicationStatus>;
   
-  // Loading states
+  // Notifications
+  notifications: Notification[];
+  unreadNotificationCount: number;
+  notificationPreferences: NotificationPreferences;
+  
+  // Statistics
+  serviceStats: ServiceStats | null;
+  
+  // Loading States
   isLoading: boolean;
   isSearching: boolean;
   isLoadingService: boolean;
   isLoadingRequirements: boolean;
   isLoadingFees: boolean;
+  isLoadingApplications: boolean;
+  isSubmittingApplication: boolean;
+  isLoadingNotifications: boolean;
+  isLoadingStats: boolean;
   
-  // Error states
+  // Error States
   error: string | null;
   searchError: string | null;
   serviceError: string | null;
+  applicationError: string | null;
+  notificationError: string | null;
   
-  // Success states
+  // Success States
   searchSuccess: boolean;
+  applicationSubmitSuccess: boolean;
   
-  // Cache info
+  // Cache Management
   lastFetchTime: string | null;
-  cacheExpiry: number; // milliseconds
+  cacheExpiry: number;
+  
+  // UI State
+  selectedDistrict: string | null;
+  selectedCategory: string | null;
+  activeTab: 'services' | 'applications' | 'notifications';
 }
 
-// Async thunks for services operations
+// --- Enhanced Async Thunks ---
+
 export const fetchAllServices = createAsyncThunk<
   { services: Service[]; featured?: Service[]; popular?: Service[] },
-  void,
+  { page?: number; limit?: number; filters?: Partial<SearchFilters> },
   { rejectValue: string }
->(
-  'services/fetchAll',
-  async (_, { rejectWithValue }) => {
+>('services/fetchAll', async ({ page = 1, limit = 20, filters }, { rejectWithValue }) => {
+  try {
+    const response = await servicesApi.getAllServices(page, limit, filters);
+    if (response.success) {
+      await AsyncStorage.setItem('servicesData', JSON.stringify(response.data));
+      await AsyncStorage.setItem('servicesLastFetch', new Date().toISOString());
+      return { services: response.data };
+    }
+    return rejectWithValue(response.message || 'Failed to fetch services');
+  } catch (error: any) {
     try {
-      const response = await servicesApi.getAllServices();
-      
-      if (response.success) {
-        // Cache services data for offline access
-        await AsyncStorage.setItem('servicesData', JSON.stringify(response.data));
-        return response.data;
-      } else {
-        return rejectWithValue(response.message || 'Failed to fetch services');
-      }
-    } catch (error: any) {
-      // Try to load from cache if network fails
-      try {
-        const cachedData = await AsyncStorage.getItem('servicesData');
-        if (cachedData) {
+      const cachedData = await AsyncStorage.getItem('servicesData');
+      const lastFetch = await AsyncStorage.getItem('servicesLastFetch');
+      if (cachedData && lastFetch) {
+        const cacheAge = Date.now() - new Date(lastFetch).getTime();
+        if (cacheAge < 3600000) { // 1 hour cache
           return JSON.parse(cachedData);
         }
-      } catch (cacheError) {
-        console.log('No cached services data available');
       }
-      
-      return rejectWithValue(error.message || 'Network error');
-    }
+    } catch {}
+    return rejectWithValue(error.message || 'Network error');
   }
-);
+});
 
-export const fetchServiceById = createAsyncThunk<
-  Service,
-  string,
-  { rejectValue: string }
->(
+export const fetchServiceById = createAsyncThunk<Service, string, { rejectValue: string }>(
   'services/fetchById',
   async (serviceId, { rejectWithValue }) => {
     try {
       const response = await servicesApi.getServiceById(serviceId);
-      
-      if (response.success) {
+      if (response.success && response.data) {
         return response.data;
-      } else {
-        return rejectWithValue(response.message || 'Service not found');
       }
+      return rejectWithValue(response.message || 'Service not found');
     } catch (error: any) {
       return rejectWithValue(error.message || 'Failed to fetch service details');
     }
   }
 );
 
-export const fetchServicesByDistrict = createAsyncThunk<
-  { districtId: string; services: Service[] },
-  string,
-  { rejectValue: string }
->(
-  'services/fetchByDistrict',
-  async (districtId, { rejectWithValue }) => {
+export const fetchPopularServices = createAsyncThunk<Service[], number, { rejectValue: string }>(
+  'services/fetchPopular',
+  async (limit = 10, { rejectWithValue }) => {
     try {
-      const response = await servicesApi.getServicesByDistrict(districtId);
-      
-      if (response.success) {
-        return {
-          districtId,
-          services: response.data,
-        };
-      } else {
-        return rejectWithValue(response.message || 'No services found for this district');
-      }
+      const response = await servicesApi.getPopularServices(limit);
+      if (response.success) return response.data;
+      return rejectWithValue(response.message || 'Failed to fetch popular services');
     } catch (error: any) {
-      return rejectWithValue(error.message || 'Failed to fetch district services');
+      try {
+        const cachedData = await AsyncStorage.getItem('popularServices');
+        if (cachedData) return JSON.parse(cachedData);
+      } catch {}
+      return rejectWithValue(error?.message || 'Failed to fetch popular services');
     }
   }
 );
+
+export const fetchServicesByDistrict = createAsyncThunk<
+  { districtId: string; services: Service[] },
+  { districtId: string; useCache?: boolean },
+  { rejectValue: string }
+>('services/fetchByDistrict', async ({ districtId, useCache = true }, { rejectWithValue }) => {
+  try {
+    const response = await servicesApi.getServicesByDistrict(districtId, useCache);
+    if (response.success) return { districtId, services: response.data ?? [] };
+    return rejectWithValue(response.message || 'No services found for this district');
+  } catch (error: any) {
+    return rejectWithValue(error.message || 'Failed to fetch district services');
+  }
+});
 
 export const searchServices = createAsyncThunk<
   SearchResult,
   { query: string; filters?: Partial<SearchFilters> },
   { rejectValue: string }
->(
-  'services/search',
-  async ({ query, filters = {} }, { rejectWithValue }) => {
-    try {
-      const completeFilters: SearchFilters = {
-        district: filters.district ?? null,
-        category: filters.category ?? null,
-        type: filters.type ?? null,
-        fee: filters.fee ?? null,
+>('services/search', async ({ query, filters = {} }, { rejectWithValue }) => {
+  try {
+    const completeFilters: SearchFilters = {
+      district: filters.district ?? null,
+      category: filters.category ?? null,
+      type: filters.type ?? null,
+      fee: filters.fee ?? null,
+      rating: filters.rating ?? null,
+      popularity: filters.popularity ?? null,
+    };
+    const response = await servicesApi.searchServices(query, completeFilters);
+    if (response.success) {
+      return { 
+        query, 
+        results: response.data ?? [], 
+        totalResults: response.total ?? (response.data ? response.data.length : 0),
+        filters: completeFilters
       };
-      const response = await servicesApi.searchServices(query, completeFilters);
-      
-      if (response.success) {
-        return {
-          query,
-          results: response.data,
-          totalResults: response.total || response.data.length,
-        };
-      } else {
-        return rejectWithValue(response.message || 'No services found');
-      }
-    } catch (error: any) {
-      return rejectWithValue(error.message || 'Search failed');
     }
+    return rejectWithValue(response.message || 'No services found');
+  } catch (error: any) {
+    return rejectWithValue(error.message || 'Search failed');
   }
-);
+});
 
 export const fetchServiceRequirements = createAsyncThunk<
   { serviceId: string; requirements: ServiceRequirement[] },
   string,
   { rejectValue: string }
->(
-  'services/fetchRequirements',
-  async (serviceId, { rejectWithValue }) => {
-    try {
-      const response = await servicesApi.getServiceRequirements(serviceId);
-      
-      if (response.success) {
-        return {
-          serviceId,
-          requirements: response.data,
-        };
-      } else {
-        return rejectWithValue(response.message || 'Requirements not found');
-      }
-    } catch (error: any) {
-      return rejectWithValue(error.message || 'Failed to fetch requirements');
-    }
+>('services/fetchRequirements', async (serviceId, { rejectWithValue }) => {
+  try {
+    const response = await servicesApi.getServiceRequirements(serviceId);
+    if (response.success) return { serviceId, requirements: response.data ?? [] };
+    return rejectWithValue(response.message || 'Requirements not found');
+  } catch (error: any) {
+    return rejectWithValue(error.message || 'Failed to fetch requirements');
   }
-);
+});
 
 export const fetchServiceFees = createAsyncThunk<
   { serviceId: string; fees: ServiceFee[] },
   string,
   { rejectValue: string }
->(
-  'services/fetchFees',
-  async (serviceId, { rejectWithValue }) => {
+>('services/fetchFees', async (serviceId, { rejectWithValue }) => {
+  try {
+    const response = await servicesApi.getServiceFees(serviceId);
+    if (response.success) return { serviceId, fees: response.data ?? [] };
+    return rejectWithValue(response.message || 'Fee information not found');
+  } catch (error: any) {
+    return rejectWithValue(error.message || 'Failed to fetch fee information');
+  }
+});
+
+export const fetchDistricts = createAsyncThunk<District[], void, { rejectValue: string }>(
+  'services/fetchDistricts',
+  async (_, { rejectWithValue }) => {
     try {
-      const response = await servicesApi.getServiceFees(serviceId);
-      
+      const response = await servicesApi.getDistricts();
       if (response.success) {
-        return {
-          serviceId,
-          fees: response.data,
-        };
-      } else {
-        return rejectWithValue(response.message || 'Fee information not found');
+        await AsyncStorage.setItem('districtsData', JSON.stringify(response.data));
+        return response.data as District[];
       }
+      return rejectWithValue(response.message || 'Failed to fetch districts');
     } catch (error: any) {
-      return rejectWithValue(error.message || 'Failed to fetch fee information');
+      try {
+        const cachedData = await AsyncStorage.getItem('districtsData');
+        if (cachedData) return JSON.parse(cachedData);
+      } catch {}
+      return rejectWithValue(error.message || 'Failed to fetch districts');
     }
   }
 );
 
-// Initial state
+export const fetchServiceCenters = createAsyncThunk<
+  ServiceCenter[],
+  { districtId?: string; serviceId?: string },
+  { rejectValue: string }
+>('services/fetchServiceCenters', async (params, { rejectWithValue }) => {
+  try {
+    const response = await servicesApi.getServiceCenters(params.districtId, params.serviceId);
+    if (response.success) return response.data ?? [];
+    return rejectWithValue(response.message || 'Failed to fetch service centers');
+  } catch (error: any) {
+    return rejectWithValue(error.message || 'Failed to fetch service centers');
+  }
+});
+
+// Application Management Thunks
+export const submitNICApplication = createAsyncThunk<
+  NICApplicationResponse,
+  NICApplicationData,
+  { rejectValue: string }
+>('services/submitNICApplication', async (applicationData, { rejectWithValue }) => {
+  try {
+    const response = await servicesApi.submitNICApplication(applicationData);
+    if (response.success && response.data) {
+      // Store application data locally for offline access
+      await AsyncStorage.setItem(`application_${response.data.referenceNumber}`, JSON.stringify({
+        ...applicationData,
+        ...response.data,
+        submittedAt: new Date().toISOString()
+      }));
+      return response.data;
+    }
+    return rejectWithValue(response.message || 'Application submission failed');
+  } catch (error: any) {
+    return rejectWithValue(error.message || 'Application submission failed');
+  }
+});
+
+export const fetchUserApplications = createAsyncThunk<
+  UserApplication[],
+  { status?: string; limit?: number; offset?: number },
+  { rejectValue: string }
+>('services/fetchUserApplications', async (filters = {}, { rejectWithValue }) => {
+  try {
+    const response = await servicesApi.getUserApplications(filters);
+    if (response.success) {
+      await AsyncStorage.setItem('userApplications', JSON.stringify(response.data));
+      return (response.data ?? []).map((app: any) => ({
+        referenceNumber: app.referenceNumber,
+        serviceId: app.serviceId || 'unknown',
+        serviceName: app.serviceName || 'Unknown Service',
+        status: app.status,
+        submittedAt: app.submittedAt,
+        lastUpdated: app.lastUpdated,
+        estimatedCompletionDate: app.estimatedCompletionDate,
+        currentStage: app.currentStage,
+        progress: app.progress || 0,
+        canCancel: app.canCancel !== false,
+        canUpdate: app.canUpdate !== false,
+        requiresAction: app.requiresAction || false,
+      }));
+    }
+    return rejectWithValue(response.message || 'Failed to fetch applications');
+  } catch (error: any) {
+    try {
+      const cachedData = await AsyncStorage.getItem('userApplications');
+      if (cachedData) return JSON.parse(cachedData);
+    } catch {}
+    return rejectWithValue(error.message || 'Failed to fetch applications');
+  }
+});
+
+export const trackApplication = createAsyncThunk<
+  ApplicationStatus,
+  string,
+  { rejectValue: string }
+>('services/trackApplication', async (referenceNumber, { rejectWithValue }) => {
+  try {
+    const response = await servicesApi.getApplicationStatus(referenceNumber);
+    if (response.success && response.data) {
+      return response.data;
+    } else {
+      return rejectWithValue(response.message || 'Application not found');
+    }
+  } catch (error: any) {
+    return rejectWithValue(error.message || 'Failed to track application');
+  }
+});
+
+export const cancelApplication = createAsyncThunk<
+  { referenceNumber: string },
+  { referenceNumber: string; reason: string },
+  { rejectValue: string }
+>('services/cancelApplication', async ({ referenceNumber, reason }, { rejectWithValue }) => {
+  try {
+    const response = await servicesApi.cancelApplication(referenceNumber, reason);
+    if (response.success) return { referenceNumber };
+    return rejectWithValue(response.message || 'Failed to cancel application');
+  } catch (error: any) {
+    return rejectWithValue(error.message || 'Failed to cancel application');
+  }
+});
+
+// Notification Thunks
+export const fetchNotifications = createAsyncThunk<
+  { notifications: Notification[]; total: number },
+  { limit?: number; offset?: number },
+  { rejectValue: string }
+>('services/fetchNotifications', async ({ limit = 20, offset = 0 }, { rejectWithValue }) => {
+  try {
+    const response = await servicesApi.getUserNotifications(limit, offset);
+    if (response.success) {
+      return { notifications: response.data ?? [], total: response.total ?? (response.data ? response.data.length : 0) };
+    }
+    return rejectWithValue(response.message || 'Failed to fetch notifications');
+  } catch (error: any) {
+    return rejectWithValue(error.message || 'Failed to fetch notifications');
+  }
+});
+
+export const markNotificationAsRead = createAsyncThunk<
+  string,
+  string,
+  { rejectValue: string }
+>('services/markNotificationAsRead', async (notificationId, { rejectWithValue }) => {
+  try {
+    const response = await servicesApi.markNotificationAsRead(notificationId);
+    if (response.success) return notificationId;
+    return rejectWithValue(response.message || 'Failed to mark notification as read');
+  } catch (error: any) {
+    return rejectWithValue(error.message || 'Failed to mark notification as read');
+  }
+});
+
+// Statistics Thunk
+export const fetchServiceStats = createAsyncThunk<
+  ServiceStats,
+  void,
+  { rejectValue: string }
+>('services/fetchServiceStats', async (_, { rejectWithValue }) => {
+  try {
+    const response = await servicesApi.getServiceStats();
+    if (response.success && response.data) {
+      return response.data;
+    }
+    return rejectWithValue(response.message || 'Failed to fetch service statistics');
+  } catch (error: any) {
+    return rejectWithValue(error.message || 'Failed to fetch service statistics');
+  }
+});
+
+// --- Initial State ---
 const initialState: ServicesState = {
-  // Services data
+  // Services Data
   services: [],
   featuredServices: [],
   popularServices: [],
   recentlyUsed: [],
-  
-  // Current service details
   currentService: null,
   serviceRequirements: {},
   serviceFees: {},
+  serviceCenters: [],
   
-  // Search
+  // Search & Filters
   searchResults: [],
   searchQuery: '',
-  searchFilters: {
-    district: null,
-    category: null,
-    type: null,
-    fee: null,
-  },
-
-  // Tracking filters
+  searchFilters: { district: null, category: null, type: null, fee: null, rating: null, popularity: null },
   trackingFilters: {
     status: 'all',
-    dateRange: {
-      start: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 days ago
-      end: new Date().toISOString()
+    dateRange: { 
+      start: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(), 
+      end: new Date().toISOString() 
     },
-    serviceType: null
+    serviceType: null,
+    sortBy: 'date',
+    sortOrder: 'desc',
+  },
+  searchSuggestions: [],
+  
+  // Categories & Locations
+  categories: [
+    { id: 'registry', name: 'Registry Services', icon: 'file-text', color: '#3B82F6', serviceCount: 0 },
+    { id: 'certificates', name: 'Certificates', icon: 'award', color: '#10B981', serviceCount: 0 },
+    { id: 'permits', name: 'Permits & Licenses', icon: 'clipboard-check', color: '#F59E0B', serviceCount: 0 },
+    { id: 'welfare', name: 'Welfare Services', icon: 'heart', color: '#EF4444', serviceCount: 0 },
+    { id: 'land', name: 'Land Services', icon: 'map', color: '#8B5CF6', serviceCount: 0 },
+    { id: 'other', name: 'Other Services', icon: 'more-horizontal', color: '#6B7280', serviceCount: 0 },
+  ],
+  districts: [],
+  
+  // Applications
+  userApplications: [],
+  currentApplication: null,
+  applicationStatus: {},
+  
+  // Notifications
+  notifications: [],
+  unreadNotificationCount: 0,
+  notificationPreferences: {
+    smsNotifications: true,
+    emailNotifications: true,
+    pushNotifications: true,
+    statusUpdates: true,
+    reminderAlerts: true,
   },
   
-  // Categories
-  categories: [
-    { id: 'registry', name: 'Registry Services', icon: 'file-text', color: '#3B82F6' },
-    { id: 'certificates', name: 'Certificates', icon: 'award', color: '#10B981' },
-    { id: 'permits', name: 'Permits & Licenses', icon: 'clipboard-check', color: '#F59E0B' },
-    { id: 'welfare', name: 'Welfare Services', icon: 'heart', color: '#EF4444' },
-    { id: 'land', name: 'Land Services', icon: 'map', color: '#8B5CF6' },
-    { id: 'other', name: 'Other Services', icon: 'more-horizontal', color: '#6B7280' },
-  ],
+  // Statistics
+  serviceStats: null,
   
-  // Districts (Sri Lankan districts)
-  districts: [
-    { id: 1, name: 'Colombo', province: 'Western' },
-    { id: 2, name: 'Gampaha', province: 'Western' },
-    { id: 3, name: 'Kalutara', province: 'Western' },
-    { id: 4, name: 'Kandy', province: 'Central' },
-    { id: 5, name: 'Matale', province: 'Central' },
-    { id: 6, name: 'Nuwara Eliya', province: 'Central' },
-    { id: 7, name: 'Galle', province: 'Southern' },
-    { id: 8, name: 'Matara', province: 'Southern' },
-    { id: 9, name: 'Hambantota', province: 'Southern' },
-    { id: 10, name: 'Jaffna', province: 'Northern' },
-    { id: 11, name: 'Kilinochchi', province: 'Northern' },
-    { id: 12, name: 'Mannar', province: 'Northern' },
-    { id: 13, name: 'Mullaitivu', province: 'Northern' },
-    { id: 14, name: 'Vavuniya', province: 'Northern' },
-    { id: 15, name: 'Batticaloa', province: 'Eastern' },
-    { id: 16, name: 'Ampara', province: 'Eastern' },
-    { id: 17, name: 'Trincomalee', province: 'Eastern' },
-    { id: 18, name: 'Kurunegala', province: 'North Western' },
-    { id: 19, name: 'Puttalam', province: 'North Western' },
-    { id: 20, name: 'Anuradhapura', province: 'North Central' },
-    { id: 21, name: 'Polonnaruwa', province: 'North Central' },
-    { id: 22, name: 'Badulla', province: 'Uva' },
-    { id: 23, name: 'Monaragala', province: 'Uva' },
-    { id: 24, name: 'Ratnapura', province: 'Sabaragamuwa' },
-    { id: 25, name: 'Kegalle', province: 'Sabaragamuwa' },
-  ],
-  
-  // Available services (11 GS/DS services)
-  availableServices: [
-    {
-      id: 'nic_reissue',
-      name: 'NIC Reissue',
-      nameTranslations: {
-        si: 'හැදුනුම්පත් නැවත නිකුත් කිරීම',
-        ta: 'அடையாள அட்டை மறுவழங்கல்',
-      },
-      category: 'registry',
-      isActive: true,
-      description: 'Apply for National Identity Card reissue',
-      estimatedTime: '7-14 days',
-      fee: 'Rs. 100',
-      icon: 'id-card',
-      color: '#3B82F6',
-      requirements: ['Current NIC (if available)', 'Birth Certificate', 'Recent passport-size photograph'],
-      isOnline: true,
-    },
-    {
-      id: 'birth_certificate',
-      name: 'Birth Certificate',
-      nameTranslations: {
-        si: 'උප්පැන්න සහතිකය',
-        ta: 'பிறப்பு சான்றிதழ்',
-      },
-      category: 'certificates',
-      isActive: false,
-      description: 'Obtain certified copy of birth certificate',
-      estimatedTime: '3-7 days',
-      fee: 'Rs. 50',
-      icon: 'baby',
-      color: '#10B981',
-      isOnline: false,
-      comingSoon: true,
-    },
-    {
-      id: 'marriage_certificate',
-      name: 'Marriage Certificate',
-      nameTranslations: {
-        si: 'විවාහ සහතිකය',
-        ta: 'திருமண சான்றிதழ்',
-      },
-      category: 'certificates',
-      isActive: false,
-      description: 'Obtain certified copy of marriage certificate',
-      estimatedTime: '3-7 days',
-      fee: 'Rs. 50',
-      icon: 'heart',
-      color: '#EF4444',
-      isOnline: false,
-      comingSoon: true,
-    },
-    {
-      id: 'death_certificate',
-      name: 'Death Certificate',
-      nameTranslations: {
-        si: 'මරණ සහතිකය',
-        ta: 'இறப்பு சான்றிதழ்',
-      },
-      category: 'certificates',
-      isActive: false,
-      description: 'Obtain certified copy of death certificate',
-      estimatedTime: '3-7 days',
-      fee: 'Rs. 50',
-      icon: 'cross',
-      color: '#6B7280',
-      isOnline: false,
-      comingSoon: true,
-    },
-    {
-      id: 'income_certificate',
-      name: 'Income Certificate',
-      nameTranslations: {
-        si: 'ආදායම් සහතිකය',
-        ta: 'வருமான சான்றிதழ்',
-      },
-      category: 'certificates',
-      isActive: false,
-      description: 'Certificate for income verification',
-      estimatedTime: '5-10 days',
-      fee: 'Rs. 25',
-      icon: 'dollar-sign',
-      color: '#F59E0B',
-      isOnline: false,
-      comingSoon: true,
-    },
-    {
-      id: 'residence_certificate',
-      name: 'Residence Certificate',
-      nameTranslations: {
-        si: 'පදිංචි සහතිකය',
-        ta: 'குடியிருப்பு சான்றிதழ்',
-      },
-      category: 'certificates',
-      isActive: false,
-      description: 'Certificate of permanent residence',
-      estimatedTime: '5-10 days',
-      fee: 'Rs. 25',
-      icon: 'home',
-      color: '#8B5CF6',
-      isOnline: false,
-      comingSoon: true,
-    },
-    {
-      id: 'character_certificate',
-      name: 'Character Certificate',
-      nameTranslations: {
-        si: 'චරිත සහතිකය',
-        ta: 'நல்லொழுக்க சான்றிதழ்',
-      },
-      category: 'certificates',
-      isActive: false,
-      description: 'Police clearance/character certificate',
-      estimatedTime: '14-21 days',
-      fee: 'Rs. 500',
-      icon: 'shield-check',
-      color: '#059669',
-      isOnline: false,
-      comingSoon: true,
-    },
-    {
-      id: 'business_registration',
-      name: 'Business Registration',
-      nameTranslations: {
-        si: 'ව්‍යාපාර ලියාපදිංචිය',
-        ta: 'வணிக பதிவு',
-      },
-      category: 'permits',
-      isActive: false,
-      description: 'Register new business with local authority',
-      estimatedTime: '10-15 days',
-      fee: 'Rs. 1000',
-      icon: 'briefcase',
-      color: '#DC2626',
-      isOnline: false,
-      comingSoon: true,
-    },
-    {
-      id: 'land_certificate',
-      name: 'Land Certificate',
-      nameTranslations: {
-        si: 'ඉඩම් සහතිකය',
-        ta: 'நிலச் சான்றிதழ்',
-      },
-      category: 'land',
-      isActive: false,
-      description: 'Land ownership verification certificate',
-      estimatedTime: '21-30 days',
-      fee: 'Rs. 200',
-      icon: 'map-pin',
-      color: '#7C3AED',
-      isOnline: false,
-      comingSoon: true,
-    },
-    {
-      id: 'welfare_benefits',
-      name: 'Welfare Benefits',
-      nameTranslations: {
-        si: 'සුභසාධන ප්‍රතිලාභ',
-        ta: 'நலன்புரி நன்மைகள்',
-      },
-      category: 'welfare',
-      isActive: false,
-      description: 'Apply for government welfare programs',
-      estimatedTime: '30-45 days',
-      fee: 'Free',
-      icon: 'gift',
-      color: '#EC4899',
-      isOnline: false,
-      comingSoon: true,
-    },
-    {
-      id: 'senior_citizen_id',
-      name: 'Senior Citizen ID',
-      nameTranslations: {
-        si: 'ජ්‍යෙෂ්ඨ පුරවැසි හැදුනුම්පත',
-        ta: 'மூத்த குடிமக்கள் அடையாள அட்டை',
-      },
-      category: 'welfare',
-      isActive: false,
-      description: 'Senior citizen identification card',
-      estimatedTime: '14-21 days',
-      fee: 'Free',
-      icon: 'users',
-      color: '#0D9488',
-      isOnline: false,
-      comingSoon: true,
-    },
-  ],
-  
-  // Loading states
+  // Loading States
   isLoading: false,
   isSearching: false,
   isLoadingService: false,
   isLoadingRequirements: false,
   isLoadingFees: false,
+  isLoadingApplications: false,
+  isSubmittingApplication: false,
+  isLoadingNotifications: false,
+  isLoadingStats: false,
   
-  // Error states
+  // Error States
   error: null,
   searchError: null,
   serviceError: null,
+  applicationError: null,
+  notificationError: null,
   
-  // Success states
+  // Success States
   searchSuccess: false,
+  applicationSubmitSuccess: false,
   
-  // Cache info
+  // Cache Management
   lastFetchTime: null,
-  cacheExpiry: 3600000, // 1 hour in milliseconds
+  cacheExpiry: 3600000, // 1 hour
+  
+  // UI State
+  selectedDistrict: null,
+  selectedCategory: null,
+  activeTab: 'services',
 };
 
+// --- Enhanced Slice ---
 const servicesSlice = createSlice({
   name: 'services',
   initialState,
   reducers: {
-    // Clear error states
+    // Error Management
     clearServicesErrors: (state) => {
       state.error = null;
       state.searchError = null;
       state.serviceError = null;
+      state.applicationError = null;
+      state.notificationError = null;
+    },
+    clearSpecificError: (state, action: PayloadAction<keyof ServicesState>) => {
+      const errorField = action.payload;
+      if (errorField in state && typeof state[errorField] === 'string') {
+        (state as any)[errorField] = null;
+      }
     },
     
-    // Clear search
+    // Search Management
     clearSearch: (state) => {
       state.searchResults = [];
       state.searchQuery = '';
       state.searchError = null;
       state.searchSuccess = false;
+      state.searchSuggestions = [];
     },
-    
-    // Set search query
     setSearchQuery: (state, action: PayloadAction<string>) => {
       state.searchQuery = action.payload;
     },
-    
-    // Set search filters
     setSearchFilters: (state, action: PayloadAction<Partial<SearchFilters>>) => {
       state.searchFilters = { ...state.searchFilters, ...action.payload };
     },
-
-    // Set tracking filters
     setTrackingFilters: (state, action: PayloadAction<Partial<TrackingFilters>>) => {
       state.trackingFilters = { ...state.trackingFilters, ...action.payload };
     },
-    
-    // Reset search filters
     resetSearchFilters: (state) => {
-      state.searchFilters = {
-        district: null,
-        category: null,
-        type: null,
-        fee: null,
-      };
+      state.searchFilters = { district: null, category: null, type: null, fee: null, rating: null, popularity: null };
+    },
+    addSearchSuggestion: (state, action: PayloadAction<string>) => {
+      const suggestion = action.payload;
+      if (!state.searchSuggestions.includes(suggestion)) {
+        state.searchSuggestions = [suggestion, ...state.searchSuggestions].slice(0, 10);
+      }
     },
     
-    // Set current service
+    // Service Management
     setCurrentService: (state, action: PayloadAction<Service | null>) => {
       state.currentService = action.payload;
     },
-    
-    // Clear current service
     clearCurrentService: (state) => {
       state.currentService = null;
     },
-    
-    // Add to recently used
-    addToRecentlyUsed: (state, action: PayloadAction<string>) => {
-      const serviceId = action.payload;
-      const existingIndex = state.recentlyUsed.findIndex(id => id === serviceId);
-      
-      if (existingIndex !== -1) {
-        // Move to front if already exists
-        state.recentlyUsed.splice(existingIndex, 1);
-      }
-      
-      state.recentlyUsed.unshift(serviceId);
-      
-      // Keep only last 5
-      if (state.recentlyUsed.length > 5) {
-        state.recentlyUsed = state.recentlyUsed.slice(0, 5);
-      }
-    },
-    
-    // Update service in list
     updateService: (state, action: PayloadAction<{ id: string; updates: Partial<Service> }>) => {
-      const { id, updates } = action.payload;
-      const serviceIndex = state.services.findIndex(service => service.id === id);
-      
-      if (serviceIndex !== -1) {
-        state.services[serviceIndex] = { ...state.services[serviceIndex], ...updates };
+      const index = state.services.findIndex(s => s.id === action.payload.id);
+      if (index !== -1) {
+        state.services[index] = { ...state.services[index], ...action.payload.updates };
       }
     },
-    
-    // Set featured services
     setFeaturedServices: (state, action: PayloadAction<Service[]>) => {
       state.featuredServices = action.payload;
     },
-    
-    // Set popular services
     setPopularServices: (state, action: PayloadAction<Service[]>) => {
       state.popularServices = action.payload;
     },
     
-    // Reset services state
-    resetServicesState: (state) => {
-      return { ...initialState, districts: state.districts, categories: state.categories };
+    // Recently Used Management
+    addToRecentlyUsed: (state, action: PayloadAction<string>) => {
+      const id = action.payload;
+      state.recentlyUsed = [id, ...state.recentlyUsed.filter(x => x !== id)].slice(0, 10);
+    },
+    clearRecentlyUsed: (state) => {
+      state.recentlyUsed = [];
+    },
+    
+    // Application Management
+    setCurrentApplication: (state, action: PayloadAction<NICApplicationData | null>) => {
+      state.currentApplication = action.payload;
+    },
+    clearCurrentApplication: (state) => {
+      state.currentApplication = null;
+    },
+    updateApplicationStatus: (state, action: PayloadAction<{ referenceNumber: string; status: ApplicationStatus }>) => {
+      state.applicationStatus[action.payload.referenceNumber] = action.payload.status;
+      
+      // Update user applications list
+      const appIndex = state.userApplications.findIndex(app => app.referenceNumber === action.payload.referenceNumber);
+      if (appIndex !== -1) {
+        state.userApplications[appIndex].status = action.payload.status.status;
+        state.userApplications[appIndex].lastUpdated = action.payload.status.lastUpdated;
+        state.userApplications[appIndex].currentStage = action.payload.status.currentStage;
+      }
+    },
+    
+    // Notification Management
+    addNotification: (state, action: PayloadAction<Notification>) => {
+      state.notifications = [action.payload, ...state.notifications];
+      if (!action.payload.read) {
+        state.unreadNotificationCount += 1;
+      }
+    },
+    updateNotificationPreferences: (state, action: PayloadAction<Partial<NotificationPreferences>>) => {
+      state.notificationPreferences = { ...state.notificationPreferences, ...action.payload };
+    },
+    
+    // UI State Management
+    setSelectedDistrict: (state, action: PayloadAction<string | null>) => {
+      state.selectedDistrict = action.payload;
+    },
+    setSelectedCategory: (state, action: PayloadAction<string | null>) => {
+      state.selectedCategory = action.payload;
+    },
+    setActiveTab: (state, action: PayloadAction<'services' | 'applications' | 'notifications'>) => {
+      state.activeTab = action.payload;
+    },
+    
+    // Cache Management
+    invalidateCache: (state) => {
+      state.lastFetchTime = null;
+    },
+    updateCacheExpiry: (state, action: PayloadAction<number>) => {
+      state.cacheExpiry = action.payload;
+    },
+    
+    // Reset Functions
+    resetServicesState: (state) => ({
+      ...initialState,
+      districts: state.districts,
+      categories: state.categories,
+      recentlyUsed: state.recentlyUsed,
+      notificationPreferences: state.notificationPreferences,
+    }),
+    resetSearchState: (state) => {
+      state.searchResults = [];
+      state.searchQuery = '';
+      state.searchError = null;
+      state.searchSuccess = false;
+      state.searchSuggestions = [];
+      state.isSearching = false;
     },
   },
   extraReducers: (builder) => {
-    // Fetch all services
     builder
+      // fetchAllServices
       .addCase(fetchAllServices.pending, (state) => {
         state.isLoading = true;
         state.error = null;
       })
       .addCase(fetchAllServices.fulfilled, (state, action) => {
         state.isLoading = false;
-        state.services = action.payload.services || state.availableServices;
+        state.services = action.payload.services || [];
         state.featuredServices = action.payload.featured || [];
         state.popularServices = action.payload.popular || [];
         state.error = null;
         state.lastFetchTime = new Date().toISOString();
+        
+        // Update category counts
+        state.categories = state.categories.map(category => ({
+          ...category,
+          serviceCount: state.services.filter(service => service.category === category.id).length
+        }));
       })
       .addCase(fetchAllServices.rejected, (state, action) => {
         state.isLoading = false;
         state.error = action.payload || 'Failed to fetch services';
-        // Use default services if API fails
-        state.services = state.availableServices;
-      });
-
-    // Fetch service by ID
-    builder
+      })
+      
+      // fetchServiceById
       .addCase(fetchServiceById.pending, (state) => {
         state.isLoadingService = true;
         state.serviceError = null;
@@ -698,21 +797,23 @@ const servicesSlice = createSlice({
       .addCase(fetchServiceById.rejected, (state, action) => {
         state.isLoadingService = false;
         state.serviceError = action.payload || 'Failed to fetch service';
-      });
-
-    // Fetch services by district
-    builder
+      })
+      
+      // fetchPopularServices
+      .addCase(fetchPopularServices.fulfilled, (state, action) => {
+        state.popularServices = action.payload;
+      })
+      
+      // fetchServicesByDistrict
       .addCase(fetchServicesByDistrict.fulfilled, (state, action) => {
-        const { districtId, services } = action.payload;
-        // Update services with district-specific info
-        state.services = state.services.map(service => {
-          const districtService = services.find(ds => ds.id === service.id);
-          return districtService ? { ...service, ...districtService } : service;
-        });
-      });
-
-    // Search services
-    builder
+        const { services } = action.payload;
+        // Update services with district-specific data
+        state.services = state.services.map(s => 
+          services.find(ds => ds.id === s.id) || s
+        );
+      })
+      
+      // searchServices
       .addCase(searchServices.pending, (state) => {
         state.isSearching = true;
         state.searchError = null;
@@ -724,58 +825,307 @@ const servicesSlice = createSlice({
         state.searchQuery = action.payload.query;
         state.searchSuccess = true;
         state.searchError = null;
+        
+        // Add to search suggestions if not already present
+        if (action.payload.query && !state.searchSuggestions.includes(action.payload.query)) {
+          state.searchSuggestions = [action.payload.query, ...state.searchSuggestions].slice(0, 10);
+        }
       })
       .addCase(searchServices.rejected, (state, action) => {
         state.isSearching = false;
         state.searchError = action.payload || 'Search failed';
         state.searchSuccess = false;
         state.searchResults = [];
-      });
-
-    // Fetch service requirements
-    builder
+      })
+      
+      // fetchServiceRequirements
       .addCase(fetchServiceRequirements.pending, (state) => {
         state.isLoadingRequirements = true;
       })
       .addCase(fetchServiceRequirements.fulfilled, (state, action) => {
         state.isLoadingRequirements = false;
-        const { serviceId, requirements } = action.payload;
-        state.serviceRequirements[serviceId] = requirements;
+        state.serviceRequirements[action.payload.serviceId] = action.payload.requirements;
       })
       .addCase(fetchServiceRequirements.rejected, (state) => {
         state.isLoadingRequirements = false;
-      });
-
-    // Fetch service fees
-    builder
+      })
+      
+      // fetchServiceFees
       .addCase(fetchServiceFees.pending, (state) => {
         state.isLoadingFees = true;
       })
       .addCase(fetchServiceFees.fulfilled, (state, action) => {
         state.isLoadingFees = false;
-        const { serviceId, fees } = action.payload;
-        state.serviceFees[serviceId] = fees;
+        state.serviceFees[action.payload.serviceId] = action.payload.fees;
       })
       .addCase(fetchServiceFees.rejected, (state) => {
         state.isLoadingFees = false;
+      })
+      
+      // fetchDistricts
+      .addCase(fetchDistricts.fulfilled, (state, action) => {
+        state.districts = action.payload;
+      })
+      
+      // fetchServiceCenters
+      .addCase(fetchServiceCenters.fulfilled, (state, action) => {
+        state.serviceCenters = action.payload;
+      })
+      
+      // submitNICApplication
+      .addCase(submitNICApplication.pending, (state) => {
+        state.isSubmittingApplication = true;
+        state.applicationError = null;
+        state.applicationSubmitSuccess = false;
+      })
+      .addCase(submitNICApplication.fulfilled, (state, action) => {
+        state.isSubmittingApplication = false;
+        state.applicationSubmitSuccess = true;
+        state.applicationError = null;
+        
+        // Add to user applications
+        const newApplication: UserApplication = {
+          referenceNumber: action.payload.referenceNumber,
+          serviceId: 'nic-reissue',
+          serviceName: 'NIC Re-Issue',
+          status: action.payload.status as ApplicationStatus['status'],
+          submittedAt: action.payload.submittedAt,
+          lastUpdated: action.payload.submittedAt,
+          estimatedCompletionDate: action.payload.estimatedCompletionDate,
+          currentStage: 'Application Received',
+          progress: 10,
+          canCancel: true,
+          canUpdate: false,
+          requiresAction: false,
+        };
+        
+        state.userApplications = [newApplication, ...state.userApplications];
+        
+        // Clear current application
+        state.currentApplication = null;
+      })
+      .addCase(submitNICApplication.rejected, (state, action) => {
+        state.isSubmittingApplication = false;
+        state.applicationError = action.payload || 'Application submission failed';
+        state.applicationSubmitSuccess = false;
+      })
+      
+      // fetchUserApplications
+      .addCase(fetchUserApplications.pending, (state) => {
+        state.isLoadingApplications = true;
+        state.applicationError = null;
+      })
+      .addCase(fetchUserApplications.fulfilled, (state, action) => {
+        state.isLoadingApplications = false;
+        state.userApplications = action.payload;
+        state.applicationError = null;
+      })
+      .addCase(fetchUserApplications.rejected, (state, action) => {
+        state.isLoadingApplications = false;
+        state.applicationError = action.payload || 'Failed to fetch applications';
+      })
+      
+      // trackApplication
+      .addCase(trackApplication.fulfilled, (state, action) => {
+        const status = action.payload;
+        state.applicationStatus[status.referenceNumber] = status;
+        
+        // Update user applications
+        const appIndex = state.userApplications.findIndex(
+          app => app.referenceNumber === status.referenceNumber
+        );
+        if (appIndex !== -1) {
+          state.userApplications[appIndex] = {
+            ...state.userApplications[appIndex],
+            status: status.status,
+            lastUpdated: status.lastUpdated,
+            currentStage: status.currentStage,
+            progress: calculateProgress(status.stages),
+            requiresAction: checkRequiresAction(status),
+          };
+        }
+      })
+      
+      // cancelApplication
+      .addCase(cancelApplication.fulfilled, (state, action) => {
+        const { referenceNumber } = action.payload;
+        
+        // Update application status
+        const appIndex = state.userApplications.findIndex(
+          app => app.referenceNumber === referenceNumber
+        );
+        if (appIndex !== -1) {
+          state.userApplications[appIndex] = {
+            ...state.userApplications[appIndex],
+            status: 'cancelled',
+            canCancel: false,
+            canUpdate: false,
+            requiresAction: false,
+          };
+        }
+        
+        // Update application status record
+        if (state.applicationStatus[referenceNumber]) {
+          state.applicationStatus[referenceNumber] = {
+            ...state.applicationStatus[referenceNumber],
+            status: 'cancelled',
+            lastUpdated: new Date().toISOString(),
+          };
+        }
+      })
+      
+      // fetchNotifications
+      .addCase(fetchNotifications.pending, (state) => {
+        state.isLoadingNotifications = true;
+        state.notificationError = null;
+      })
+      .addCase(fetchNotifications.fulfilled, (state, action) => {
+        state.isLoadingNotifications = false;
+        state.notifications = action.payload.notifications;
+        state.unreadNotificationCount = action.payload.notifications.filter(n => !n.read).length;
+        state.notificationError = null;
+      })
+      .addCase(fetchNotifications.rejected, (state, action) => {
+        state.isLoadingNotifications = false;
+        state.notificationError = action.payload || 'Failed to fetch notifications';
+      })
+      
+      // markNotificationAsRead
+      .addCase(markNotificationAsRead.fulfilled, (state, action) => {
+        const notificationId = action.payload;
+        const notification = state.notifications.find(n => n.id === notificationId);
+        if (notification && !notification.read) {
+          notification.read = true;
+          state.unreadNotificationCount = Math.max(0, state.unreadNotificationCount - 1);
+        }
+      })
+      
+      // fetchServiceStats
+      .addCase(fetchServiceStats.pending, (state) => {
+        state.isLoadingStats = true;
+      })
+      .addCase(fetchServiceStats.fulfilled, (state, action) => {
+        state.isLoadingStats = false;
+        state.serviceStats = action.payload;
+      })
+      .addCase(fetchServiceStats.rejected, (state) => {
+        state.isLoadingStats = false;
       });
   },
 });
 
+// --- Helper Functions ---
+const calculateProgress = (stages: ApplicationStatus['stages']): number => {
+  if (!stages || stages.length === 0) return 0;
+  
+  const completedStages = stages.filter((stage: { status: string; }) => stage.status === 'completed').length;
+  return Math.round((completedStages / stages.length) * 100);
+};
+
+const checkRequiresAction = (status: ApplicationStatus): boolean => {
+  // Check if any stage is failed or requires user action
+  return status.stages?.some((stage: { status: string; name: string; }) => 
+    stage.status === 'failed' || 
+    stage.name.toLowerCase().includes('document') && stage.status === 'pending'
+  ) || false;
+};
+
+// --- Selectors ---
+export const selectServices = (state: { services: ServicesState }) => state.services.services;
+export const selectFeaturedServices = (state: { services: ServicesState }) => state.services.featuredServices;
+export const selectPopularServices = (state: { services: ServicesState }) => state.services.popularServices;
+export const selectCurrentService = (state: { services: ServicesState }) => state.services.currentService;
+export const selectSearchResults = (state: { services: ServicesState }) => state.services.searchResults;
+export const selectUserApplications = (state: { services: ServicesState }) => state.services.userApplications;
+export const selectNotifications = (state: { services: ServicesState }) => state.services.notifications;
+export const selectUnreadNotificationCount = (state: { services: ServicesState }) => state.services.unreadNotificationCount;
+export const selectServiceStats = (state: { services: ServicesState }) => state.services.serviceStats;
+
+export const selectServicesByCategory = (state: { services: ServicesState }, category: string) =>
+  state.services.services.filter(service => service.category === category);
+
+export const selectRecentlyUsedServices = (state: { services: ServicesState }) =>
+  state.services.recentlyUsed
+    .map(id => state.services.services.find(service => service.id === id))
+    .filter(Boolean) as Service[];
+
+export const selectApplicationsByStatus = (state: { services: ServicesState }, status: string) =>
+  status === 'all' 
+    ? state.services.userApplications
+    : state.services.userApplications.filter(app => app.status === status);
+
+export const selectServiceRequirements = (state: { services: ServicesState }, serviceId: string) =>
+  state.services.serviceRequirements[serviceId] || [];
+
+export const selectServiceFees = (state: { services: ServicesState }, serviceId: string) =>
+  state.services.serviceFees[serviceId] || [];
+
+export const selectIsLoading = (state: { services: ServicesState }) => ({
+  services: state.services.isLoading,
+  service: state.services.isLoadingService,
+  requirements: state.services.isLoadingRequirements,
+  fees: state.services.isLoadingFees,
+  applications: state.services.isLoadingApplications,
+  submitting: state.services.isSubmittingApplication,
+  notifications: state.services.isLoadingNotifications,
+  stats: state.services.isLoadingStats,
+  searching: state.services.isSearching,
+});
+
+export const selectErrors = (state: { services: ServicesState }) => ({
+  general: state.services.error,
+  search: state.services.searchError,
+  service: state.services.serviceError,
+  application: state.services.applicationError,
+  notification: state.services.notificationError,
+});
+
+// --- Export Actions ---
 export const {
+  // Error Management
   clearServicesErrors,
+  clearSpecificError,
+  
+  // Search Management
   clearSearch,
   setSearchQuery,
   setSearchFilters,
   setTrackingFilters,
   resetSearchFilters,
+  addSearchSuggestion,
+  
+  // Service Management
   setCurrentService,
   clearCurrentService,
-  addToRecentlyUsed,
   updateService,
   setFeaturedServices,
   setPopularServices,
+  
+  // Recently Used Management
+  addToRecentlyUsed,
+  clearRecentlyUsed,
+  
+  // Application Management
+  setCurrentApplication,
+  clearCurrentApplication,
+  updateApplicationStatus,
+  
+  // Notification Management
+  addNotification,
+  updateNotificationPreferences,
+  
+  // UI State Management
+  setSelectedDistrict,
+  setSelectedCategory,
+  setActiveTab,
+  
+  // Cache Management
+  invalidateCache,
+  updateCacheExpiry,
+  
+  // Reset Functions
   resetServicesState,
+  resetSearchState,
 } = servicesSlice.actions;
 
 export default servicesSlice.reducer;

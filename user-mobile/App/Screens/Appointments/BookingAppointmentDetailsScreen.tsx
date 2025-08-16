@@ -13,14 +13,16 @@ import {
   Dimensions,
   Modal,
   FlatList,
+  ActivityIndicator,
 } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
 import Svg, { Path, Circle } from 'react-native-svg';
 
-// Import the enhanced navigation types
+// Import the enhanced navigation types and API
 import { RootStackParamList } from '../../Navigation/AppNavigator';
 import TabNavigator from '../../Navigation/TabNavigator';
+import { appointmentsApi } from '../../Services/API/AppointmentAPI';
 
 const { width } = Dimensions.get('window');
 
@@ -44,6 +46,8 @@ interface TimeSlot {
   id: string;
   time: string;
   available: boolean;
+  maxCapacity?: number;
+  currentBookings?: number;
 }
 
 // Icons
@@ -95,6 +99,9 @@ const BookAppointmentDetailScreen: React.FC<BookAppointmentDetailScreenProps> = 
   const [selectedTime, setSelectedTime] = useState<string>('');
   const [showDivisionModal, setShowDivisionModal] = useState(false);
   const [showTimeModal, setShowTimeModal] = useState(false);
+  const [availableSlots, setAvailableSlots] = useState<TimeSlot[]>([]);
+  const [loadingSlots, setLoadingSlots] = useState(false);
+  const [bookingLoading, setBookingLoading] = useState(false);
   const [formData, setFormData] = useState({
     fullName: '',
     nic: '',
@@ -115,7 +122,44 @@ const BookAppointmentDetailScreen: React.FC<BookAppointmentDetailScreenProps> = 
     }).start();
   }, []);
 
-  // Sample data
+  // Load available slots when date is selected
+  useEffect(() => {
+    if (selectedDate) {
+      loadAvailableSlots();
+    }
+  }, [selectedDate]);
+
+  const loadAvailableSlots = async () => {
+    setLoadingSlots(true);
+    setSelectedTime(''); // Reset selected time
+    
+    try {
+      const response = await appointmentsApi.getAvailableSlots(selectedDate);
+      
+      if (response.success && Array.isArray(response.data)) {
+        // Transform API response to match our TimeSlot interface
+        const slots = response.data.map((slot: any, index: number) => ({
+          id: slot.id || `slot_${index}`,
+          time: slot.time,
+          available: slot.available && (slot.currentBookings < slot.maxCapacity),
+          maxCapacity: slot.maxCapacity,
+          currentBookings: slot.currentBookings
+        }));
+        setAvailableSlots(slots);
+      } else {
+        Alert.alert('Error', response.message || 'Failed to load available time slots');
+        setAvailableSlots([]);
+      }
+    } catch (error) {
+      console.error('Failed to load time slots:', error);
+      Alert.alert('Error', 'Failed to load available time slots. Please try again.');
+      setAvailableSlots([]);
+    } finally {
+      setLoadingSlots(false);
+    }
+  };
+
+  // Sample data for divisions (this could also come from an API)
   const divisions: Division[] = [
     {
       id: '1',
@@ -147,19 +191,6 @@ const BookAppointmentDetailScreen: React.FC<BookAppointmentDetailScreenProps> = 
         phone: '+94 77 345 6789',
       }
     },
-  ];
-
-  const timeSlots: TimeSlot[] = [
-    { id: '1', time: '09:00', available: true },
-    { id: '2', time: '09:30', available: true },
-    { id: '3', time: '10:00', available: false },
-    { id: '4', time: '10:30', available: true },
-    { id: '5', time: '11:00', available: true },
-    { id: '6', time: '14:00', available: true },
-    { id: '7', time: '14:30', available: false },
-    { id: '8', time: '15:00', available: true },
-    { id: '9', time: '15:30', available: true },
-    { id: '10', time: '16:00', available: true },
   ];
 
   const getDaysInMonth = () => {
@@ -195,17 +226,115 @@ const BookAppointmentDetailScreen: React.FC<BookAppointmentDetailScreenProps> = 
     }
   };
 
-  const handleSubmit = () => {
-    if (!selectedDivision || !selectedDate || !selectedTime || !formData.fullName || !formData.phone || !formData.subject) {
-      Alert.alert('Missing Information', 'Please fill in all required fields.');
+  const validateForm = () => {
+    if (!selectedDivision) {
+      Alert.alert('Missing Information', 'Please select a division.');
+      return false;
+    }
+    if (!selectedDate) {
+      Alert.alert('Missing Information', 'Please select a date.');
+      return false;
+    }
+    if (!selectedTime) {
+      Alert.alert('Missing Information', 'Please select a time slot.');
+      return false;
+    }
+    if (!formData.fullName.trim()) {
+      Alert.alert('Missing Information', 'Please enter your full name.');
+      return false;
+    }
+    if (!formData.nic.trim()) {
+      Alert.alert('Missing Information', 'Please enter your NIC number.');
+      return false;
+    }
+    if (!formData.phone.trim()) {
+      Alert.alert('Missing Information', 'Please enter your phone number.');
+      return false;
+    }
+    if (!formData.subject.trim()) {
+      Alert.alert('Missing Information', 'Please enter a subject.');
+      return false;
+    }
+    return true;
+  };
+
+  const handleSubmit = async () => {
+    if (!validateForm()) {
       return;
     }
 
-    Alert.alert(
-      'Appointment Request Submitted',
-      `Your ${getAppointmentTypeTitle().toLowerCase()} has been submitted successfully. You will receive a confirmation within 24 hours.\n\nReference ID: APT${Date.now()}`,
-      [{ text: 'OK', onPress: () => navigation.navigate('AppointmentsHome') }]
-    );
+    setBookingLoading(true);
+
+    try {
+      // Prepare appointment data
+      const appointmentData = {
+        serviceId: selectedDivision?.id || '',
+        appointmentDate: selectedDate,
+        timeSlot: selectedTime,
+        contactInfo: {
+          email: formData.email,
+          phone: formData.phone,
+        },
+        additionalNotes: `Subject: ${formData.subject}\nDescription: ${formData.description}\nUrgency: ${formData.urgency}\nFull Name: ${formData.fullName}\nNIC: ${formData.nic}\nDivision: ${selectedDivision?.name}\nType: ${getAppointmentTypeTitle()}`,
+        purpose: `${getAppointmentTypeTitle()} - ${formData.subject}`,
+        fullName: formData.fullName,
+        nic: formData.nic,
+        divisionId: selectedDivision?.id,
+        divisionName: selectedDivision?.name,
+        urgency: formData.urgency,
+        appointmentType: type
+      };
+
+      const response = await appointmentsApi.bookAppointment(appointmentData);
+
+      if (response.success) {
+        const appointmentId = response.data?.appointmentId || response.data?.id || `APT${Date.now()}`;
+        
+        Alert.alert(
+          'Appointment Booked Successfully!',
+          `Your ${getAppointmentTypeTitle().toLowerCase()} has been scheduled.\n\nDate: ${selectedDate}\nTime: ${selectedTime}\nDivision: ${selectedDivision?.name}\n\nAppointment ID: ${appointmentId}\n\nYou will receive a confirmation within 24 hours.`,
+          [
+            {
+              text: 'View Details',
+              onPress: () => {
+                // Navigate to appointment confirmation or details screen
+                navigation.navigate('AppointmentConfirmation', {
+                  appointmentData: {
+                    type,
+                    trackingNumber: appointmentId,
+                    division: selectedDivision?.name ?? '',
+                    date: selectedDate,
+                    time: selectedTime,
+                    subject: formData.subject,
+                    fullName: formData.fullName,
+                    phone: formData.phone,
+                    email: formData.email,
+                    urgency: formData.urgency,
+                  }
+                });
+              }
+            },
+            {
+              text: 'Go to Appointments',
+              onPress: () => navigation.navigate('AppointmentsHome')
+            }
+          ]
+        );
+      } else {
+        Alert.alert(
+          'Booking Failed',
+          response.message || 'Failed to book appointment. Please try again.'
+        );
+      }
+    } catch (error: any) {
+      console.error('Booking failed:', error);
+      Alert.alert(
+        'Booking Failed',
+        error.message || 'An unexpected error occurred. Please try again.'
+      );
+    } finally {
+      setBookingLoading(false);
+    }
   };
 
   const renderDivisionItem = ({ item }: { item: Division }) => (
@@ -251,8 +380,16 @@ const BookAppointmentDetailScreen: React.FC<BookAppointmentDetailScreenProps> = 
       ]}>
         {item.time}
       </Text>
+      {item.maxCapacity && item.currentBookings !== undefined && (
+        <Text style={[
+          styles.capacityText,
+          !item.available && styles.capacityTextDisabled
+        ]}>
+          {item.currentBookings}/{item.maxCapacity}
+        </Text>
+      )}
       {!item.available && (
-        <Text style={styles.unavailableText}>Booked</Text>
+        <Text style={styles.unavailableText}>Full</Text>
       )}
     </TouchableOpacity>
   );
@@ -347,13 +484,17 @@ const BookAppointmentDetailScreen: React.FC<BookAppointmentDetailScreenProps> = 
               <Text style={styles.sectionTitle}>Select Time</Text>
               <TouchableOpacity
                 style={styles.selectionButton}
-                onPress={() => setShowTimeModal(true)}
+                onPress={() => selectedDate ? setShowTimeModal(true) : Alert.alert('Please select a date first')}
                 activeOpacity={0.8}
+                disabled={!selectedDate}
               >
                 <View style={styles.selectionContent}>
                   <ClockIcon size={20} color="#64748B" />
-                  <Text style={styles.selectionText}>
-                    {selectedTime ? selectedTime : 'Choose appointment time'}
+                  <Text style={[
+                    styles.selectionText,
+                    !selectedDate && styles.disabledText
+                  ]}>
+                    {selectedTime ? selectedTime : selectedDate ? 'Choose appointment time' : 'Select date first'}
                   </Text>
                 </View>
                 <Text style={styles.chevron}>›</Text>
@@ -479,11 +620,22 @@ const BookAppointmentDetailScreen: React.FC<BookAppointmentDetailScreenProps> = 
             {/* Submit Button */}
             <View style={styles.submitContainer}>
               <TouchableOpacity
-                style={styles.submitButton}
+                style={[
+                  styles.submitButton,
+                  bookingLoading && styles.submitButtonDisabled
+                ]}
                 onPress={handleSubmit}
+                disabled={bookingLoading}
                 activeOpacity={0.8}
               >
-                <Text style={styles.submitButtonText}>Submit Request</Text>
+                {bookingLoading ? (
+                  <View style={styles.loadingContainer}>
+                    <ActivityIndicator size="small" color="#FFFFFF" />
+                    <Text style={styles.submitButtonText}>Booking...</Text>
+                  </View>
+                ) : (
+                  <Text style={styles.submitButtonText}>Submit Request</Text>
+                )}
               </TouchableOpacity>
               <Text style={styles.submitNote}>
                 * You will receive a confirmation within 24 hours
@@ -542,22 +694,36 @@ const BookAppointmentDetailScreen: React.FC<BookAppointmentDetailScreenProps> = 
             </View>
             
             <ScrollView style={styles.timeModalContent}>
-              <Text style={styles.timeModalSubtitle}>Available time slots for {selectedDate}</Text>
+              <Text style={styles.timeModalSubtitle}>
+                Available time slots for {selectedDate}
+              </Text>
               
-              <FlatList
-                data={timeSlots}
-                renderItem={renderTimeSlot}
-                keyExtractor={(item) => item.id}
-                numColumns={3}
-                scrollEnabled={false}
-                contentContainerStyle={styles.timeSlotGrid}
-              />
+              {loadingSlots ? (
+                <View style={styles.loadingSlotsContainer}>
+                  <ActivityIndicator size="large" color="#007AFF" />
+                  <Text style={styles.loadingText}>Loading available slots...</Text>
+                </View>
+              ) : availableSlots.length === 0 ? (
+                <View style={styles.noSlotsContainer}>
+                  <Text style={styles.noSlotsText}>
+                    No available slots for this date. Please select another date.
+                  </Text>
+                </View>
+              ) : (
+                <FlatList
+                  data={availableSlots}
+                  renderItem={renderTimeSlot}
+                  keyExtractor={(item) => item.id}
+                  numColumns={3}
+                  scrollEnabled={false}
+                  contentContainerStyle={styles.timeSlotGrid}
+                />
+              )}
             </ScrollView>
           </SafeAreaView>
         </Modal>
 
-        
-         {/* Bottom Tab Navigator */}
+        {/* Bottom Tab Navigator */}
         <TabNavigator activeTab="Services" />
         
       </SafeAreaView>
@@ -638,6 +804,9 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#0F172A',
     fontWeight: '500',
+  },
+  disabledText: {
+    color: '#9CA3AF',
   },
   chevron: {
     fontSize: 20,
@@ -757,10 +926,19 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 6,
   },
+  submitButtonDisabled: {
+    backgroundColor: '#9CA3AF',
+    shadowOpacity: 0,
+  },
   submitButtonText: {
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '700',
+  },
+  loadingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
   submitNote: {
     fontSize: 14,
@@ -850,6 +1028,29 @@ const styles = StyleSheet.create({
     marginBottom: 24,
     textAlign: 'center',
   },
+  loadingSlotsContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 40,
+  },
+  loadingText: {
+    fontSize: 16,
+    color: '#64748B',
+    marginTop: 12,
+  },
+  noSlotsContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 40,
+  },
+  noSlotsText: {
+    fontSize: 16,
+    color: '#64748B',
+    textAlign: 'center',
+    lineHeight: 24,
+  },
   timeSlotGrid: {
     gap: 12,
   },
@@ -863,7 +1064,7 @@ const styles = StyleSheet.create({
     borderColor: '#E2E8F0',
     alignItems: 'center',
     marginHorizontal: 4,
-    minHeight: 60,
+    minHeight: 70,
     justifyContent: 'center',
   },
   timeSlotDisabled: {
@@ -885,10 +1086,19 @@ const styles = StyleSheet.create({
   selectedTimeSlotText: {
     color: '#FFFFFF',
   },
-  unavailableText: {
+  capacityText: {
     fontSize: 10,
+    color: '#64748B',
+    marginTop: 4,
+    fontWeight: '500',
+  },
+  capacityTextDisabled: {
+    color: '#9CA3AF',
+  },
+  unavailableText: {
+    fontSize: 12,
     color: '#EF4444',
-    fontWeight: '600',
+    fontWeight: '700',
     marginTop: 4,
   },
 });

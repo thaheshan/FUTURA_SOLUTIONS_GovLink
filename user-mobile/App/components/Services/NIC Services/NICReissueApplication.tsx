@@ -8,16 +8,33 @@ import {
   SafeAreaView,
   StatusBar,
   TextInput,
+  Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import Svg, { Path } from 'react-native-svg';
 
 import { RootStackParamList } from '../../../Navigation/AppNavigator';
 import TabNavigator from '../../../Navigation/TabNavigator';
+import { servicesApi } from '../../../Services/API/ServiceAPI';
 
 type NICReissueApplicationScreenProps = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'NICReissueApplication'>;
 };
+
+interface NICFormData {
+  fullName: string;
+  dateOfBirth: string;
+  nicNumber: string;
+  fathersName: string;
+  mothersName: string;
+  previousAddress: string;
+  policeReportNumber: string;
+  currentAddress: string;
+  maritalStatus: string;
+  nameChange: string;
+  contactNumber: string;
+}
 
 const BackArrowIcon = ({ color = '#0F172A', size = 24 }) => (
   <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
@@ -38,7 +55,7 @@ const ChevronDownIcon = ({ color = '#64748B', size = 16 }) => (
 );
 
 const NICReissueApplicationScreen: React.FC<NICReissueApplicationScreenProps> = ({ navigation }) => {
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<NICFormData>({
     fullName: '',
     dateOfBirth: '',
     nicNumber: '',
@@ -52,7 +69,12 @@ const NICReissueApplicationScreen: React.FC<NICReissueApplicationScreenProps> = 
     contactNumber: '',
   });
 
-  const handleInputChange = (field: string, value: string) => {
+  const [loading, setLoading] = useState(false);
+  const [showMaritalStatusDropdown, setShowMaritalStatusDropdown] = useState(false);
+
+  const maritalStatusOptions = ['Single', 'Married', 'Divorced', 'Widowed'];
+
+  const handleInputChange = (field: keyof NICFormData, value: string) => {
     setFormData(prev => ({
       ...prev,
       [field]: value
@@ -63,16 +85,100 @@ const NICReissueApplicationScreen: React.FC<NICReissueApplicationScreenProps> = 
     navigation.goBack();
   };
 
-  const handleSubmit = () => {
-    // Navigate to Payment screen with proper parameters
-    navigation.navigate('Payment', {
-      serviceType: 'reissue',
-      applicationData: formData,
-      amount: 1000 // Adjust the amount as needed
-    });
+  const validateForm = (): boolean => {
+    const requiredFields = ['fullName', 'dateOfBirth', 'fathersName', 'mothersName', 'currentAddress', 'contactNumber'];
+    
+    for (const field of requiredFields) {
+      if (!formData[field as keyof NICFormData].trim()) {
+        Alert.alert('Validation Error', `Please fill in the ${field.replace(/([A-Z])/g, ' $1').toLowerCase()}`);
+        return false;
+      }
+    }
+
+    // Validate date format (basic check)
+    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+    if (!dateRegex.test(formData.dateOfBirth)) {
+      Alert.alert('Validation Error', 'Please enter date of birth in YYYY-MM-DD format');
+      return false;
+    }
+
+    // Validate contact number (basic check)
+    const phoneRegex = /^[0-9]{10}$/;
+    if (!phoneRegex.test(formData.contactNumber.replace(/\s/g, ''))) {
+      Alert.alert('Validation Error', 'Please enter a valid 10-digit contact number');
+      return false;
+    }
+
+    return true;
   };
 
-  const canSubmit = Object.values(formData).some(value => value.trim() !== '');
+  const handleSubmit = async () => {
+    if (!validateForm()) {
+      return;
+    }
+
+    setLoading(true);
+    try {
+      // Submit application to API
+      const result = await servicesApi.submitNICApplication({
+        ...formData,
+        applicationType: 'reissue',
+        documents: []
+      });
+
+      Alert.alert(
+        'Application Submitted Successfully!',
+        `Your reference number is: ${result.referenceNumber}\n\nPlease save this reference number for tracking your application.`,
+        [
+          {
+            text: 'Track Application',
+            onPress: () => {
+              navigation.navigate('ApplicationTracking', { 
+                trackingNumber: result.referenceNumber 
+              });
+            }
+          },
+          {
+            text: 'Continue to Payment',
+            onPress: () => {
+              navigation.navigate('Payment', {
+                serviceType: 'reissue',
+                applicationData: formData,
+                referenceNumber: result.referenceNumber,
+                amount: 1000
+              });
+            }
+          }
+        ]
+      );
+    } catch (error: any) {
+      console.error('NIC Application submission error:', error);
+      
+      Alert.alert(
+        'Submission Failed',
+        error.message || 'Failed to submit application. Please check your internet connection and try again.',
+        [
+          {
+            text: 'Retry',
+            onPress: handleSubmit
+          },
+          {
+            text: 'Cancel',
+            style: 'cancel'
+          }
+        ]
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const canSubmit = Object.values(formData).some(value => value.trim() !== '') && !loading;
+
+  const handleMaritalStatusSelect = (status: string) => {
+    handleInputChange('maritalStatus', status);
+    setShowMaritalStatusDropdown(false);
+  };
 
   return (
     <View style={styles.container}>
@@ -85,6 +191,7 @@ const NICReissueApplicationScreen: React.FC<NICReissueApplicationScreenProps> = 
             style={styles.backButton} 
             onPress={handleBack}
             activeOpacity={0.7}
+            disabled={loading}
           >
             <BackArrowIcon color="#0F172A" size={24} />
           </TouchableOpacity>
@@ -92,81 +199,96 @@ const NICReissueApplicationScreen: React.FC<NICReissueApplicationScreenProps> = 
           <View style={styles.headerRight} />
         </View>
 
+        {/* Loading Overlay */}
+        {loading && (
+          <View style={styles.loadingOverlay}>
+            <ActivityIndicator size="large" color="#4D7399" />
+            <Text style={styles.loadingText}>Submitting Application...</Text>
+          </View>
+        )}
+
         {/* Content */}
         <ScrollView 
           style={styles.scrollView}
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.scrollContent}
+          scrollEnabled={!loading}
         >
           {/* Identity Confirmation Section */}
           <View style={styles.sectionContainer}>
             <Text style={styles.sectionTitle}>Identity Confirmation</Text>
             
             <View style={styles.inputContainer}>
-              <Text style={styles.inputLabel}>Full Name</Text>
+              <Text style={styles.inputLabel}>Full Name *</Text>
               <TextInput
-                style={styles.textInput}
+                style={[styles.textInput, loading && styles.disabledInput]}
                 placeholder="Enter your full name"
                 placeholderTextColor="#9CA3AF"
                 value={formData.fullName}
                 onChangeText={(value) => handleInputChange('fullName', value)}
+                editable={!loading}
               />
             </View>
 
             <View style={styles.inputContainer}>
-              <Text style={styles.inputLabel}>Date of Birth</Text>
+              <Text style={styles.inputLabel}>Date of Birth *</Text>
               <TextInput
-                style={styles.textInput}
+                style={[styles.textInput, loading && styles.disabledInput]}
                 placeholder="YYYY-MM-DD"
                 placeholderTextColor="#9CA3AF"
                 value={formData.dateOfBirth}
                 onChangeText={(value) => handleInputChange('dateOfBirth', value)}
+                editable={!loading}
               />
             </View>
 
             <View style={styles.inputContainer}>
               <Text style={styles.inputLabel}>NIC Number (if known)</Text>
               <TextInput
-                style={styles.textInput}
+                style={[styles.textInput, loading && styles.disabledInput]}
                 placeholder="Enter your NIC number"
                 placeholderTextColor="#9CA3AF"
                 value={formData.nicNumber}
                 onChangeText={(value) => handleInputChange('nicNumber', value)}
+                editable={!loading}
               />
             </View>
 
             <View style={styles.inputContainer}>
-              <Text style={styles.inputLabel}>Father's Full Name</Text>
+              <Text style={styles.inputLabel}>Father's Full Name *</Text>
               <TextInput
-                style={styles.textInput}
+                style={[styles.textInput, loading && styles.disabledInput]}
                 placeholder="Enter father's full name"
                 placeholderTextColor="#9CA3AF"
                 value={formData.fathersName}
                 onChangeText={(value) => handleInputChange('fathersName', value)}
+                editable={!loading}
               />
             </View>
 
             <View style={styles.inputContainer}>
-              <Text style={styles.inputLabel}>Mother's Full Name</Text>
+              <Text style={styles.inputLabel}>Mother's Full Name *</Text>
               <TextInput
-                style={styles.textInput}
+                style={[styles.textInput, loading && styles.disabledInput]}
                 placeholder="Enter mother's full name"
                 placeholderTextColor="#9CA3AF"
                 value={formData.mothersName}
                 onChangeText={(value) => handleInputChange('mothersName', value)}
+                editable={!loading}
               />
             </View>
 
             <View style={styles.inputContainer}>
               <Text style={styles.inputLabel}>Previous Address</Text>
               <TextInput
-                style={[styles.textInput, styles.textArea]}
+                style={[styles.textInput, styles.textArea, loading && styles.disabledInput]}
                 placeholder="Enter your previous address"
                 placeholderTextColor="#9CA3AF"
                 multiline
                 numberOfLines={3}
                 value={formData.previousAddress}
                 onChangeText={(value) => handleInputChange('previousAddress', value)}
+                editable={!loading}
               />
             </View>
           </View>
@@ -178,11 +300,12 @@ const NICReissueApplicationScreen: React.FC<NICReissueApplicationScreenProps> = 
             <View style={styles.inputContainer}>
               <Text style={styles.inputLabel}>Police Report Number (for stolen NICs)</Text>
               <TextInput
-                style={styles.textInput}
+                style={[styles.textInput, loading && styles.disabledInput]}
                 placeholder="Enter police report number"
                 placeholderTextColor="#9CA3AF"
                 value={formData.policeReportNumber}
                 onChangeText={(value) => handleInputChange('policeReportNumber', value)}
+                editable={!loading}
               />
             </View>
           </View>
@@ -192,48 +315,70 @@ const NICReissueApplicationScreen: React.FC<NICReissueApplicationScreenProps> = 
             <Text style={styles.sectionTitle}>Changes Since Last NIC</Text>
             
             <View style={styles.inputContainer}>
-              <Text style={styles.inputLabel}>Current Address</Text>
+              <Text style={styles.inputLabel}>Current Address *</Text>
               <TextInput
-                style={[styles.textInput, styles.textArea]}
+                style={[styles.textInput, styles.textArea, loading && styles.disabledInput]}
                 placeholder="Enter your current address"
                 placeholderTextColor="#9CA3AF"
                 multiline
                 numberOfLines={3}
                 value={formData.currentAddress}
                 onChangeText={(value) => handleInputChange('currentAddress', value)}
+                editable={!loading}
               />
             </View>
 
             <View style={styles.inputContainer}>
               <Text style={styles.inputLabel}>Marital Status</Text>
-              <TouchableOpacity style={styles.selectInput} activeOpacity={0.7}>
+              <TouchableOpacity 
+                style={[styles.selectInput, loading && styles.disabledInput]} 
+                activeOpacity={0.7}
+                onPress={() => !loading && setShowMaritalStatusDropdown(!showMaritalStatusDropdown)}
+                disabled={loading}
+              >
                 <Text style={[styles.selectText, !formData.maritalStatus && styles.placeholder]}>
                   {formData.maritalStatus || 'Select marital status'}
                 </Text>
                 <ChevronDownIcon color="#64748B" size={16} />
               </TouchableOpacity>
+              
+              {showMaritalStatusDropdown && (
+                <View style={styles.dropdown}>
+                  {maritalStatusOptions.map((option) => (
+                    <TouchableOpacity
+                      key={option}
+                      style={styles.dropdownItem}
+                      onPress={() => handleMaritalStatusSelect(option)}
+                    >
+                      <Text style={styles.dropdownItemText}>{option}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
             </View>
 
             <View style={styles.inputContainer}>
               <Text style={styles.inputLabel}>Name Change (if applicable)</Text>
               <TextInput
-                style={styles.textInput}
+                style={[styles.textInput, loading && styles.disabledInput]}
                 placeholder="Enter new name if changed"
                 placeholderTextColor="#9CA3AF"
                 value={formData.nameChange}
                 onChangeText={(value) => handleInputChange('nameChange', value)}
+                editable={!loading}
               />
             </View>
 
             <View style={styles.inputContainer}>
-              <Text style={styles.inputLabel}>Contact Number</Text>
+              <Text style={styles.inputLabel}>Contact Number *</Text>
               <TextInput
-                style={styles.textInput}
+                style={[styles.textInput, loading && styles.disabledInput]}
                 placeholder="Enter your contact number"
                 placeholderTextColor="#9CA3AF"
                 keyboardType="phone-pad"
                 value={formData.contactNumber}
                 onChangeText={(value) => handleInputChange('contactNumber', value)}
+                editable={!loading}
               />
             </View>
           </View>
@@ -243,18 +388,22 @@ const NICReissueApplicationScreen: React.FC<NICReissueApplicationScreenProps> = 
             <TouchableOpacity 
               style={[
                 styles.submitButton,
-                !canSubmit && styles.submitButtonDisabled
+                (!canSubmit || loading) && styles.submitButtonDisabled
               ]}
               onPress={handleSubmit}
               activeOpacity={0.8}
-              disabled={!canSubmit}
+              disabled={!canSubmit || loading}
             >
-              <Text style={[
-                styles.submitButtonText,
-                !canSubmit && styles.submitButtonTextDisabled
-              ]}>
-                Continue to Payment
-              </Text>
+              {loading ? (
+                <ActivityIndicator color="#FFFFFF" size="small" />
+              ) : (
+                <Text style={[
+                  styles.submitButtonText,
+                  (!canSubmit || loading) && styles.submitButtonTextDisabled
+                ]}>
+                  Submit Application
+                </Text>
+              )}
             </TouchableOpacity>
           </View>
 
@@ -307,6 +456,23 @@ const styles = StyleSheet.create({
   headerRight: {
     width: 40,
   },
+  loadingOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 1000,
+  },
+  loadingText: {
+    marginTop: 10,
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
+  },
   scrollView: {
     flex: 1,
   },
@@ -325,6 +491,7 @@ const styles = StyleSheet.create({
   },
   inputContainer: {
     marginBottom: 20,
+    position: 'relative',
   },
   inputLabel: {
     fontSize: 16,
@@ -346,6 +513,10 @@ const styles = StyleSheet.create({
     height: 80,
     textAlignVertical: 'top',
   },
+  disabledInput: {
+    backgroundColor: '#F8FAFC',
+    color: '#94A3B8',
+  },
   selectInput: {
     backgroundColor: '#F1F5F9',
     borderRadius: 12,
@@ -363,6 +534,32 @@ const styles = StyleSheet.create({
   },
   placeholder: {
     color: '#9CA3AF',
+  },
+  dropdown: {
+    position: 'absolute',
+    top: '100%',
+    left: 0,
+    right: 0,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 4,
+    zIndex: 100,
+  },
+  dropdownItem: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
+  },
+  dropdownItemText: {
+    fontSize: 16,
+    color: '#0F172A',
   },
   buttonContainer: {
     paddingHorizontal: 20,
