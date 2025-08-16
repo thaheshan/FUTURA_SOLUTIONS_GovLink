@@ -5,7 +5,7 @@ import type React from "react"
 import { useState } from "react"
 
 interface CommunicationPageProps {
-  onNavigate?: (route: string) => void
+  onNavigate?: (route: string, data?: any) => void
 }
 
 const CommunicationPage: React.FC<CommunicationPageProps> = ({ onNavigate }) => {
@@ -17,6 +17,7 @@ const CommunicationPage: React.FC<CommunicationPageProps> = ({ onNavigate }) => 
       id: 1,
       type: "Email",
       recipient: "Ms. Anika Silva",
+      citizenId: "923456789V",
       subject: "Regarding application for National ID",
       content: "Sent: 2024-01-20 10:30 AM",
       status: "Sent",
@@ -26,6 +27,7 @@ const CommunicationPage: React.FC<CommunicationPageProps> = ({ onNavigate }) => 
       id: 2,
       type: "SMS",
       recipient: "Mr. Rohan Perera",
+      citizenId: "885012345V",
       subject: "Regarding passport renewal",
       content: "Sent: 2024-01-19 04:15 PM",
       status: "Delivered",
@@ -35,6 +37,7 @@ const CommunicationPage: React.FC<CommunicationPageProps> = ({ onNavigate }) => 
       id: 3,
       type: "Email",
       recipient: "Mr. Dinesh Fernando",
+      citizenId: "956789012V",
       subject: "Regarding visa application",
       content: "Received: 2024-01-18 09:00 AM",
       status: "Received",
@@ -44,6 +47,7 @@ const CommunicationPage: React.FC<CommunicationPageProps> = ({ onNavigate }) => 
       id: 4,
       type: "SMS",
       recipient: "Ms. Kavindi Rajapaksa",
+      citizenId: "854567890V",
       subject: "Regarding driver's license",
       content: "Sent: 2024-01-17 11:45 AM",
       status: "Delivered",
@@ -53,6 +57,7 @@ const CommunicationPage: React.FC<CommunicationPageProps> = ({ onNavigate }) => 
       id: 5,
       type: "Email",
       recipient: "Ms. Ishani Gunawardena",
+      citizenId: "901234567V",
       subject: "Regarding birth certificate",
       content: "Received: 2024-01-16 02:30 PM",
       status: "Received",
@@ -68,20 +73,14 @@ const CommunicationPage: React.FC<CommunicationPageProps> = ({ onNavigate }) => 
     return matchesTab && matchesSearch
   })
 
-  const handleComposeClick = () => {
-    if (activeTab === "Email") {
-      onNavigate?.("compose-email")
-    } else if (activeTab === "SMS") {
-      onNavigate?.("compose-sms")
-    } else {
-      onNavigate?.("compose-email") // Default to email
+  const handleCommunicationClick = (comm: any) => {
+    if (comm.type === "SMS") {
+      // Navigate to chat for SMS communications
+      onNavigate?.("chat", {
+        citizenId: comm.citizenId,
+        citizenName: comm.recipient,
+      })
     }
-  }
-
-  const getComposeButtonText = () => {
-    if (activeTab === "Email") return "+ Compose New Email"
-    if (activeTab === "SMS") return "+ Compose New Message"
-    return "+ Compose New Message"
   }
 
   return (
@@ -136,7 +135,11 @@ const CommunicationPage: React.FC<CommunicationPageProps> = ({ onNavigate }) => 
 
           <div className="divide-y divide-gray-100">
             {filteredCommunications.map((comm) => (
-              <div key={comm.id} className="p-6 hover:bg-gray-50 cursor-pointer">
+              <div
+                key={comm.id}
+                className="p-6 hover:bg-gray-50 cursor-pointer"
+                onClick={() => handleCommunicationClick(comm)}
+              >
                 <div className="flex items-start justify-between">
                   <div className="flex items-start space-x-4">
                     <div className="flex-shrink-0">
@@ -161,10 +164,11 @@ const CommunicationPage: React.FC<CommunicationPageProps> = ({ onNavigate }) => 
                       </div>
                       <p className="text-sm text-gray-600 mb-1">{comm.subject}</p>
                       <p className="text-xs text-gray-500">{comm.content}</p>
+                      {comm.type === "SMS" && <p className="text-xs text-blue-600 mt-1">Click to open chat</p>}
                     </div>
                   </div>
                   <div className="flex-shrink-0">
-                    <i className={`${comm.icon} text-xl text-gray-400`}></i>
+                    {comm.type === "SMS" && <i className={`${comm.icon} text-xl text-gray-400`}></i>}
                   </div>
                 </div>
               </div>
@@ -172,14 +176,33 @@ const CommunicationPage: React.FC<CommunicationPageProps> = ({ onNavigate }) => 
           </div>
         </div>
 
-        {/* Compose Button */}
+        {/* Compose Button - Changes based on active tab */}
         <div className="fixed bottom-6 right-6">
-          <button
-            onClick={handleComposeClick}
-            className="bg-gray-800 hover:bg-gray-900 text-white px-6 py-3 rounded-lg shadow-lg flex items-center space-x-2 transition-colors"
-          >
-            <span>{getComposeButtonText()}</span>
-          </button>
+          {activeTab === "All" ? (
+            <button
+              onClick={() => onNavigate?.("chat", { citizenName: "New Conversation" })}
+              className="bg-blue-700 hover:bg-gray-800 text-white px-6 py-3 rounded-lg shadow-lg flex items-center space-x-2 transition-colors"
+            >
+              <i className="fas fa-comments mr-2"></i>
+              <span>ChatBox</span>
+            </button>
+          ) : activeTab === "Email" ? (
+            <button
+              onClick={() => onNavigate?.("compose-email")}
+              className="bg-blue-700 hover:bg-gray-800 text-white px-6 py-3 rounded-lg shadow-lg flex items-center space-x-2 transition-colors"
+            >
+              <i className="fas fa-envelope mr-2"></i>
+              <span>Compose Email</span>
+            </button>
+          ) : activeTab === "SMS" ? (
+            <button
+              onClick={() => onNavigate?.("compose-sms")}
+              className="bg-blue-700 hover:bg-gray-800 text-white px-6 py-3 rounded-lg shadow-lg flex items-center space-x-2 transition-colors"
+            >
+              <i className="fas fa-sms mr-2"></i>
+              <span>Compose New Message</span>
+            </button>
+          ) : null}
         </div>
       </div>
     </div>
